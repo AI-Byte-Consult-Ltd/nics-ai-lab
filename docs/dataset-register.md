@@ -51,10 +51,32 @@ its own, to produce a broadly capable language model -- see
 [`model_cards/nics-text-nano.md`](../model_cards/nics-text-nano.md) for
 honest limitations.
 
+### `fashion-mnist-v1`
+
+| Field | Value |
+|---|---|
+| Name | Fashion-MNIST |
+| Source | `zalandoresearch/fashion-mnist` GitHub repo (Zalando Research) |
+| Source URL | `https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/{train,t10k}-{images,labels}-idx{3,1}-ubyte.gz` |
+| Acquired | 2026-08-05 |
+| License | MIT (Zalando SE, 2017) |
+| Commercial use | Yes |
+| Personal data risk | None |
+| Copyright risk | None -- Zalando's own product catalog photographs, MIT-licensed by the copyright holder (not a third-party scrape) |
+| Size | 30,878,645 bytes (4 files combined) |
+| SHA-256 | per-file, see `data_registry/datasets.json` |
+| Used by | `nics-vision-nano` / `exp-0001` |
+
+Purpose: 10-class grayscale clothing image classification, chosen over
+Imagenette/Imagewoof after checking licenses directly rather than trusting
+the repo-level license badge -- Imagenette/Imagewoof's Apache-2.0 license
+covers the `fastai/imagenette` code only, and neither its README nor
+LICENSE make any explicit commercial-use grant for the underlying
+ImageNet-derived images, which fails Section 1's "license is unambiguous"
+requirement. Fashion-MNIST's MIT license, by contrast, is issued by
+Zalando SE, the actual copyright holder of the source photographs, and
+covers the dataset itself, not just surrounding code.
+
 ## Planned
 
-No further datasets are registered yet. `nics-vision-nano` training
-(Stage 4) requires selecting and registering a small, licensed image
-dataset before any training run can start -- per Section 1 of this
-register, an unlicensed or unclear-license image set is not eligible
-regardless of convenience.
+No further datasets are registered yet.

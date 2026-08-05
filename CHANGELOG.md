@@ -14,6 +14,23 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.2.0] - 2026-08-06
+
+### Added
+- `nics-vision-nano`: first trained checkpoint of the compact CNN
+  classifier, trained from random initialisation on `fashion-mnist-v1` --
+  see [`model_cards/nics-vision-nano.md`](model_cards/nics-vision-nano.md).
+  Step-0 val loss (2.3038) and val accuracy (0.1313) match the `ln(10) ≈
+  2.30` / chance-level sanity check for a 10-class classifier at random
+  init; final val accuracy 0.8711 after 500 steps.
+- `fashion-mnist-v1` registered in `data_registry/datasets.json` and
+  `docs/dataset-register.md` -- selected over Imagenette/Imagewoof after
+  checking license text directly (Imagenette/Imagewoof's Apache-2.0 covers
+  code only, not an explicit commercial-use grant for the underlying
+  ImageNet-derived images).
+- Vision data/training scripts: `scripts/prepare_vision_data.py`,
+  `scripts/train_vision.py`, `configs/vision/nano.yaml`.
+
 ## [0.1.1] - 2026-08-06
 
 ### Added
