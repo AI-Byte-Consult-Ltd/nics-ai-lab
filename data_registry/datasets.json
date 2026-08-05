@@ -1,0 +1,18 @@
+[
+  {
+    "dataset_id": "tinyshakespeare-v1",
+    "name": "Tiny Shakespeare",
+    "source": "karpathy/char-rnn (GitHub mirror of Shakespeare's complete works)",
+    "source_url": "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt",
+    "version": "1",
+    "acquisition_date": "2026-08-05T20:30:46.449379+00:00",
+    "license": "Public Domain (William Shakespeare, d. 1616)",
+    "permitted_use": "training, evaluation, redistribution",
+    "commercial_use": true,
+    "personal_data_risk": "none",
+    "copyright_risk": "none -- public domain source text",
+    "checksum_sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
+    "size_bytes": 1115394,
+    "notes": "First NICS Text dataset: small (~1.1MB), unambiguously licensed, used to validate the from-scratch tokenizer + training pipeline end to end (nics-text-nano). Not intended to produce a broadly capable model on its own."
+  }
+]

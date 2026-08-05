@@ -1,0 +1,24 @@
+Proprietary License
+
+Copyright (c) 2011-2026 AI Byte Consult Ltd. All rights reserved.
+
+This repository and all of its contents -- including but not limited to
+source code, model architectures, configuration, training pipelines,
+documentation and associated assets (collectively, the "Software") -- are
+the proprietary and confidential property of AI Byte Consult Ltd
+("the Company").
+
+This is NOT open-source software, and no open-source license (MIT, Apache,
+GPL, or otherwise) applies to it.
+
+Model weights, checkpoints and datasets are NOT stored in this repository
+and are governed separately (see docs/model-ownership.md and
+docs/dataset-register.md).
+
+No permission is granted to any person to use, copy, modify, merge,
+publish, distribute, sublicense, host, deploy, reverse-engineer, or sell
+copies of the Software, in whole or in part, for any purpose, without
+prior written authorization from AI Byte Consult Ltd.
+
+For licensing, partnership, or authorized-use inquiries, contact:
+info@aibyteconsult.com

@@ -1,0 +1,42 @@
+{
+  "model_id": "nics-text-nano",
+  "experiment_id": "exp-0001",
+  "git_commit": "unknown",
+  "seed": 42,
+  "config": {
+    "model_id": "nics-text-nano",
+    "seed": 42,
+    "model": {
+      "d_model": 128,
+      "n_layers": 4,
+      "n_heads": 4,
+      "max_seq_len": 128,
+      "dropout": 0.0
+    },
+    "data": {
+      "corpus": "data/raw/tinyshakespeare.txt",
+      "tokenizer_dir": "data/processed/tokenizer",
+      "train_split": 0.9
+    },
+    "training": {
+      "batch_size": 32,
+      "max_steps": 500,
+      "eval_interval": 50,
+      "eval_iters": 20,
+      "checkpoint_interval": 100,
+      "learning_rate": 0.0003,
+      "warmup_steps": 50,
+      "weight_decay": 0.01,
+      "grad_clip": 1.0
+    },
+    "paths": {
+      "experiments_dir": "experiments/text/nics-text-nano"
+    }
+  },
+  "vocab_size": 512,
+  "parameter_count": 868992,
+  "started_at": "2026-08-05T20:32:09.863587+00:00",
+  "finished_at": "2026-08-05T20:33:40.001175+00:00",
+  "final_step": 499,
+  "best_val_loss": 3.987874722480774
+}
