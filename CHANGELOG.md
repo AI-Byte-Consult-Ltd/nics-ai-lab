@@ -14,6 +14,21 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.1.1] - 2026-08-06
+
+### Added
+- Independent reproduction of `nics-text-nano` on the laptop (Windows,
+  Intel Core Ultra 5 125H, CPU-only): `exp-0002-laptop`. Same seed (42),
+  config (`configs/text/nano.yaml`), and dataset as `exp-0001`; confirms
+  the from-scratch pipeline (tokenizer, model, checkpointing, telemetry,
+  export) is reproducible on different hardware, not just the original
+  sandbox. Step-0 loss (6.2509) again matches the `ln(512) ≈ 6.24`
+  random-init sanity check; final loss matches `exp-0001` within
+  floating-point noise.
+- `experiments/text/nics-text-nano/exp-0002-laptop/manifest.json` and
+  `events.jsonl` added as provenance (checkpoints and exported weights
+  excluded per `docs/architecture.md` Section 3).
+
 ## [0.1.0] - 2026-08-05
 
 ### Added
