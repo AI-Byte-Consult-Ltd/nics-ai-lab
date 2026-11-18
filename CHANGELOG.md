@@ -14,6 +14,27 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.3.0] - 2026-11-18
+
+### Added
+- **NICS Trading** (`nics-trading-nano`), prototype, not trained yet:
+  market-sequence Transformer from random initialisation, reusing the
+  NICS Language blocks (`src/nics/models/trading/model.py`). Two heads:
+  where price is N bars later (down / flat / up, self-supervised from
+  candles) and the probability a scanner signal reaches TP1 before SL.
+- `src/nics/data/market.py`: scale-free candle features (ATR units),
+  forward labels, signal outcomes re-derived from candles (a bar touching
+  TP1 and SL counts as a loss), time split with an embargo gap.
+- `scripts/fetch_market_data.py`: downloads a snapshot of our own data
+  (Vantage MT5 candles + scanner signals) from the n8n lab export into
+  `data/market/<date>/` with checksums. Data stays on the training machine.
+- `scripts/train_trading.py`: train / val / test by time, early stopping on
+  validation (overfitting guard), best-on-val weights, `metrics.json` with
+  baselines (majority class, base rate) and mean R per trade after spread;
+  the signal filter threshold is chosen on val and applied once to test.
+- `tests/test_trading_pipeline.py`: end-to-end smoke test on synthetic data.
+- Dataset `nics-market-v1` registered (own data, snapshots versioned by date).
+
 ## [0.2.0] - 2026-08-06
 
 ### Added

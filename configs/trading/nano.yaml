@@ -1,0 +1,35 @@
+model_id: nics-trading-nano
+seed: 42
+
+model:
+  d_model: 64
+  n_layers: 3
+  n_heads: 4
+  dropout: 0.1
+
+data:
+  interval: M15          # base timeframe of the window (our Vantage MT5 candles)
+  bar_seconds: 900
+  window: 96             # 96 x M15 = last 24 hours
+  stride: 4              # one horizon sample every hour
+  horizon_bars: 16       # horizon head: where is price 4 hours later
+  flat_atr: 0.5          # |move| < 0.5 ATR = flat
+  signal_max_bars: 192   # a signal still open after 48 h has no outcome yet
+  split: [0.7, 0.15]     # train / val by time, rest = test
+
+training:
+  batch_size: 64
+  max_steps: 3000
+  eval_interval: 100
+  checkpoint_interval: 500
+  early_stop_evals: 6
+  learning_rate: 0.0005
+  warmup_steps: 100
+  weight_decay: 0.05
+  grad_clip: 1.0
+  signal_loss_weight: 1.0
+  min_signal_samples: 50
+  min_filtered_trades: 20
+
+paths:
+  experiments_dir: experiments/trading/nics-trading-nano

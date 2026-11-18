@@ -40,5 +40,21 @@
     },
     "size_bytes": 30878645,
     "notes": "10-class grayscale clothing image classification dataset, 28x28px, 60,000 train / 10,000 test images. Used to train nics-vision-nano end to end. checksum_sha256 and size_bytes are per-file (4 idx-ubyte.gz files); size_bytes total is the sum of all four."
+  },
+  {
+    "dataset_id": "nics-market-v1",
+    "name": "NICS market data (own)",
+    "source": "AI Byte Consult Ltd own systems: Vantage MT5 bridge candles (broker_market_candles) and NICS scanner signals with outcomes (signals)",
+    "source_url": "n8n workflow [41 LAB] Market Data Export (private, key-protected)",
+    "version": "1 (snapshots versioned by export date, data/market/<YYYY-MM-DD>/)",
+    "acquisition_date": "per snapshot, see its manifest.json",
+    "license": "Proprietary, owned by AI Byte Consult Ltd; broker price data used under the Vantage account terms for internal analysis",
+    "permitted_use": "internal training and evaluation; not redistributed",
+    "commercial_use": true,
+    "personal_data_risk": "none -- prices and signal levels only, no user identifiers exported",
+    "copyright_risk": "low -- own records; raw broker data is not republished",
+    "checksum_sha256": "per snapshot, in manifest.json",
+    "size_bytes": "per snapshot",
+    "notes": "Training data for NICS Trading. Only our own data, per Alexander (2026-11-18). Every snapshot's sha256 is copied into the experiment manifest so a run can be traced to its exact data."
   }
 ]
