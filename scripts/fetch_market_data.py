@@ -1,9 +1,10 @@
 """Download a snapshot of OUR market data (Vantage MT5 candles + scanner signals).
 
 The n8n workflow "[41 LAB] Market Data Export" serves the data; it needs the
-lab export key. Nothing is downloaded from third parties.
+lab export key (n8n: open the workflow, run "Create or Show Lab Key").
+Nothing is downloaded from third parties.
 
-  set NICS_DATA_URL=https://<n8n host>/webhook/nics-lab-market-export
+  set NICS_DATA_URL=https://n8n.aibyteconsult.com/webhook/nics-lab-market-export
   set NICS_DATA_KEY=<lab export key>          (never commit it)
   python scripts/fetch_market_data.py --interval M15 --days 120
 
@@ -54,7 +55,18 @@ def main() -> None:
     if not url or not key:
         sys.exit("Set NICS_DATA_URL and NICS_DATA_KEY first (see the docstring).")
 
-    data = fetch(url, key, {"interval": args.interval, "days": args.days})
+    base = {"interval": args.interval, "days": args.days}
+    listing = fetch(url, key, {**base, "mode": "symbols"})
+    symbols = sorted({r["symbol"] for r in listing.get("symbols") or [] if r["interval"] == args.interval})
+    if not symbols:
+        sys.exit(f"No {args.interval} candles in the last {args.days} days. Available: {listing.get('symbols')}")
+    candles = []
+    for sym in symbols:
+        rows = fetch(url, key, {**base, "mode": "candles", "symbol": sym}).get("candles") or []
+        print(f"{sym}: {len(rows)} {args.interval} candles")
+        candles.extend(rows)
+    signals = fetch(url, key, {**base, "mode": "signals"}).get("signals") or []
+    data = {"candles": candles, "signals": signals, "exported_at": listing.get("exported_at")}
     out = ROOT / "data" / "market" / datetime.now(timezone.utc).strftime("%Y-%m-%d")
     out.mkdir(parents=True, exist_ok=True)
     write_csv(out / "candles.csv", CANDLE_COLS, data.get("candles", []))

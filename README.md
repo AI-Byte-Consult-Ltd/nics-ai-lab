@@ -49,7 +49,8 @@ called ready before it has been checked.
 
 ```bash
 # 1. download our data (Vantage MT5 candles + scanner signals) -- stays in data/, not in git
-set NICS_DATA_URL=...   &   set NICS_DATA_KEY=...
+set NICS_DATA_URL=https://n8n.aibyteconsult.com/webhook/nics-lab-market-export
+set NICS_DATA_KEY=<key from n8n "[41 LAB] Market Data Export" -> "Create or Show Lab Key">
 python scripts/fetch_market_data.py --interval M15 --days 120
 # 2. train from random weights; weights land in experiments/trading/nics-trading-nano/<exp>/release/
 python scripts/train_trading.py --config configs/trading/nano.yaml --snapshot data/market/<date>
