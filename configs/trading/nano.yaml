@@ -8,19 +8,27 @@ model:
   dropout: 0.1
 
 data:
-  interval: M15          # base timeframe of the window (our Vantage MT5 candles)
-  bar_seconds: 900
-  window: 96             # 96 x M15 = last 24 hours
-  stride: 4              # one horizon sample every hour
-  horizon_bars: 16       # horizon head: where is price 4 hours later
-  flat_atr: 0.5          # |move| < 0.5 ATR = flat
-  signal_max_bars: 192   # a signal still open after 48 h has no outcome yet
-  split: [0.7, 0.15]     # train / val by time, rest = test
+  window: 96             # bars per input window, on every timeframe
+  flat_atr: 0.5          # horizon head: |move| < 0.5 ATR = flat
+  use_public: true       # public D1/W1 history (public_candles.csv); --no-public turns it off
+  # Every timeframe we have. stride = one sample every N bars, horizon = bars ahead for the label.
+  intervals:
+    1min:  {stride: 30, horizon: 60}   # where is price 1 hour later
+    5min:  {stride: 6,  horizon: 24}   # 2 hours
+    15min: {stride: 4,  horizon: 16}   # 4 hours
+    1h:    {stride: 1,  horizon: 8}    # 8 hours
+    4h:    {stride: 1,  horizon: 6}    # 1 day
+    1day:  {stride: 1,  horizon: 5}    # 1 week   (public history)
+    1week: {stride: 1,  horizon: 4}    # 1 month  (public history)
+  signal_interval: 15min # broker candles used to label every trade setup (TP1 vs SL)
+  signal_max_bars: 192   # a setup still open after 48 h has no outcome yet
+  split: [0.7, 0.15]     # train / val by time (boundaries from our broker data), rest = test
 
 training:
   batch_size: 64
   max_steps: 3000
   eval_interval: 100
+  eval_max_samples: 20000
   checkpoint_interval: 500
   early_stop_evals: 6
   learning_rate: 0.0005

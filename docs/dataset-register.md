@@ -77,6 +77,33 @@ requirement. Fashion-MNIST's MIT license, by contrast, is issued by
 Zalando SE, the actual copyright holder of the source photographs, and
 covers the dataset itself, not just surrounding code.
 
+### `nics-market-v2` (added 2026-11-18, replaces v1 for training)
+
+All our trading data from the private, read-only n8n workflow
+`[41 LAB] Market Data Export`: Vantage MT5 bridge candles on every timeframe
+(1min, 5min, 15min, 1h, 4h; 27 instruments), every scanner signal (all
+modes, strong and weak) with levels and recorded result, signal lifecycle
+events, shadow strategies, EA manual signals, economic calendar, trade
+journal, instrument specs. Weak and on-request signals are used for
+internal training only and never enter public statistics. The calendar
+starts 2026-10-20, so it is exported but not yet a model feature.
+
+### `nics-public-history-v1` (added 2026-11-18)
+
+Public D1/W1 history from Kraken (BTC, ETH) and Yahoo Finance (indices,
+gold/silver/Brent futures, US stocks, FX), fetched by
+`scripts/fetch_public_history.py`. Not our broker's prices; every row keeps
+its source. **License caveat:** third-party terms, internal research only,
+never republished. Commercial use is unclear (eligibility rule 2), so a
+model meant to ship is either retrained with `--no-public` or the terms are
+confirmed first. Added on Alexander's explicit request.
+
+### `nics-own-trades-v1` (added 2026-11-18)
+
+Our closed positions from the MT5 terminal (prop, Vantage, algo accounts),
+read locally by `scripts/fetch_mt5_history.py`. The account number is not
+stored.
+
 ## Planned
 
 No further datasets are registered yet.

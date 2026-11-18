@@ -14,6 +14,37 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.4.0] - 2026-11-18
+
+### Changed
+- **NICS Trading now trains on all our trading data**, not only M15 candles
+  (Alexander, 2026-11-18: "абсолютно на всех торговых данных, доступных и
+  публичных, которые у нас есть, на результатах"):
+  - every broker timeframe (1min, 5min, 15min, 1h, 4h) for every instrument
+    in one model; timeframe and source are input features;
+  - public D1/W1 history (Kraken, Yahoo) for years of context the broker
+    store does not have (`--no-public` trains on our data only);
+  - every trade setup with entry/SL/TP: all scanner signals (scheduled,
+    on-request, scalper, strong and weak), shadow strategies, EA manual
+    signals and our own closed MT5 trades; outcomes re-derived the same way
+    for every source; metrics split by timeframe and by setup kind;
+  - candle-derived TP1/SL labels are checked against the tracker's recorded
+    lifecycle events (`label_agreement_with_tracker`).
+- Split boundaries come from our broker data; public history before them
+  is training data. A sample is kept only if its label is known before the
+  next split starts.
+- Windows are built lazily, so millions of candles fit in laptop memory.
+
+### Added
+- `scripts/fetch_public_history.py` (public D1/W1, source kept per row).
+- `scripts/fetch_mt5_history.py` (our closed positions from a running MT5
+  terminal, account number not stored).
+- n8n `[41 LAB] Market Data Export` serves all our trading tables, paged.
+
+### Fixed
+- The bridge names timeframes `1min/5min/15min/1h/4h`, not `M15`; the
+  0.3.0 fetch command would have found no candles.
+
 ## [0.3.0] - 2026-11-18
 
 ### Added

@@ -55,6 +55,57 @@
     "copyright_risk": "low -- own records; raw broker data is not republished",
     "checksum_sha256": "per snapshot, in manifest.json",
     "size_bytes": "per snapshot",
-    "notes": "Training data for NICS Trading. Only our own data, per Alexander (2026-11-18). Every snapshot's sha256 is copied into the experiment manifest so a run can be traced to its exact data."
+    "notes": "Training data for NICS Trading. Only our own data, per Alexander (2026-11-18). Every snapshot's sha256 is copied into the experiment manifest so a run can be traced to its exact data. Superseded by nics-market-v2 (0.4.0)."
+  },
+  {
+    "dataset_id": "nics-market-v2",
+    "name": "NICS trading data (own), all sources",
+    "source": "AI Byte Consult Ltd own systems: Vantage MT5 bridge candles on every timeframe (broker_market_candles: 1min, 5min, 15min, 1h, 4h; 27 instruments), every NICS scanner signal with levels and recorded result (signals, all modes, strong and weak), signal lifecycle events (signal_events), shadow strategies (swing_shadow_trades), EA manual signals (manual_algo_signals), economic calendar (economic_events, ForexFactory via [19 NEWS]), trade journal, instrument specs",
+    "source_url": "n8n workflow [41 LAB] Market Data Export (private, key-protected, read-only)",
+    "version": "2 (snapshots versioned by export date, data/market/<YYYY-MM-DD>/)",
+    "acquisition_date": "per snapshot, see its manifest.json",
+    "license": "Proprietary, owned by AI Byte Consult Ltd; broker price data used under the Vantage account terms for internal analysis",
+    "permitted_use": "internal training and evaluation; not redistributed",
+    "commercial_use": true,
+    "personal_data_risk": "none -- prices, signal levels and results only; no user identifiers exported",
+    "copyright_risk": "low -- own records; raw broker data is not republished",
+    "checksum_sha256": "per snapshot, in manifest.json",
+    "size_bytes": "per snapshot",
+    "notes": "Weak and on-request signals are included for internal training only; they never enter any public statistic. The economic calendar only covers 2026-10-20 onward, so it is exported but not yet used as a model feature (it would differ between train and test periods)."
+  },
+  {
+    "dataset_id": "nics-public-history-v1",
+    "name": "Public D1/W1 market history",
+    "source": "Kraken public OHLC API (BTC/USD, ETH/USD); Yahoo Finance chart API (indices, gold/silver/Brent futures, US stocks, FX; USD/CNH via onshore CNY=X)",
+    "source_url": [
+      "https://api.kraken.com/0/public/OHLC",
+      "https://query1.finance.yahoo.com/v8/finance/chart/"
+    ],
+    "version": "1 (per snapshot: public_candles.csv)",
+    "acquisition_date": "per snapshot, see manifest.json public_history",
+    "license": "Third-party public market data; Yahoo terms do not permit redistribution. Used for internal research/training only, nothing republished.",
+    "permitted_use": "internal training and evaluation; not redistributed",
+    "commercial_use": "unclear -- review before shipping a model trained with it commercially, or train with --no-public",
+    "personal_data_risk": "none",
+    "copyright_risk": "medium -- third-party terms; raw data is never republished",
+    "checksum_sha256": "per snapshot, in manifest.json",
+    "size_bytes": "per snapshot",
+    "notes": "Not our broker's prices (futures vs spot, index vs CFD). Features are scale-free (ATR units), so the model learns market shape from them. Every row keeps its source. Added on Alexander's request (2026-11-18) to train on all available public data we use."
+  },
+  {
+    "dataset_id": "nics-own-trades-v1",
+    "name": "Our closed MT5 positions",
+    "source": "MetaTrader 5 terminal trade history of our accounts (prop, Vantage, algo), read locally with the official MetaTrader5 Python package",
+    "source_url": "local terminal, scripts/fetch_mt5_history.py",
+    "version": "1 (per snapshot: own_trades_<label>.csv)",
+    "acquisition_date": "per snapshot, see manifest.json own_trades",
+    "license": "Proprietary, our own trading records",
+    "permitted_use": "internal training and evaluation; not redistributed",
+    "commercial_use": true,
+    "personal_data_risk": "low -- account number not stored; account label only",
+    "copyright_risk": "none",
+    "checksum_sha256": "per snapshot, in manifest.json",
+    "size_bytes": "per snapshot",
+    "notes": "Positions without SL and TP at open are kept in the file but cannot become labelled setups."
   }
 ]
