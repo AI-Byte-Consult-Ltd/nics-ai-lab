@@ -1,6 +1,6 @@
 # NICS AI Lab
 
-**Version 0.1.0** -- see [`CHANGELOG.md`](CHANGELOG.md) for release history.
+**Version 0.3.0** -- see [`CHANGELOG.md`](CHANGELOG.md) for release history.
 Every merged change bumps this version; there are no unversioned changes.
 
 Independent model training infrastructure for **AI Byte Consult Ltd** / the
@@ -32,12 +32,31 @@ these models. See [`model_cards/`](model_cards/) for per-model provenance.
 | Model | Status | Parameters | Notes |
 |---|---|---|---|
 | `nics-text-nano` | First run complete | ~869K | CPU-trained, `tinyshakespeare-v1` dataset, proof-of-pipeline scale |
-| `nics-vision-nano` | Architecture ready, not yet trained | ~34K (10-class config) | |
+| `nics-vision-nano` | First run complete | ~34K | CPU-trained, `fashion-mnist-v1`, 87.1% val accuracy, pipeline scale |
+| `nics-trading-nano` | Prototype: code ready, not trained yet | ~163K | NICS Trading; trains only on our own data (`nics-market-v1`) on the laptop |
 | `nics-text-alpha` | Planned | -- | |
 | `nics-vision-alpha` | Planned | -- | |
 
 Hardware: CPU only (no discrete GPU on the current training machine) --
 see the hardware report referenced in `docs/architecture.md`.
+
+Model families (names decided 2026-11-18): **NICS Language** (`nics-text-*`),
+**NICS Vision** (`nics-vision-*`), **NICS Trading** (`nics-trading-*`).
+Status words: implemented / prototype / experiment / plan -- nothing is
+called ready before it has been checked.
+
+## NICS Trading quickstart (laptop, CPU)
+
+```bash
+# 1. download our data (Vantage MT5 candles + scanner signals) -- stays in data/, not in git
+set NICS_DATA_URL=https://n8n.aibyteconsult.com/webhook/nics-lab-market-export
+set NICS_DATA_KEY=<key from n8n "[41 LAB] Market Data Export" -> "Create or Show Lab Key">
+python scripts/fetch_market_data.py --interval M15 --days 120
+# 2. train from random weights; weights land in experiments/trading/nics-trading-nano/<exp>/release/
+python scripts/train_trading.py --config configs/trading/nano.yaml --snapshot data/market/<date>
+# pipeline self-check on synthetic data (results meaningless)
+python tests/test_trading_pipeline.py
+```
 
 ## Repository layout
 

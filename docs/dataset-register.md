@@ -80,3 +80,11 @@ covers the dataset itself, not just surrounding code.
 ## Planned
 
 No further datasets are registered yet.
+
+### `nics-market-v1` (added 2026-11-18)
+
+Our own market data for NICS Trading: Vantage MT5 bridge candles and the
+NICS scanner's signals with their outcomes, exported by the private n8n
+workflow `[41 LAB] Market Data Export`. Snapshots live only on the training
+machine under `data/market/<date>/`, each with a `manifest.json` holding row
+counts and sha256; the training manifest copies those hashes. No user data.
