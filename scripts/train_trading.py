@@ -34,7 +34,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from nics.common.config import load_config  # noqa: E402
 from nics.common.seed import set_seed  # noqa: E402
-from nics.data import market  # noqa: E402
+from nics.market import data as market  # noqa: E402
 from nics.models.trading.model import NicsTradingConfig, NicsTradingModel  # noqa: E402
 from nics.telemetry.events import TelemetryWriter  # noqa: E402
 from nics.training.checkpoint import export_release, save_trainer_state, sha256_of  # noqa: E402

@@ -22,7 +22,7 @@ no silent, unversioned changes.
   NICS Language blocks (`src/nics/models/trading/model.py`). Two heads:
   where price is N bars later (down / flat / up, self-supervised from
   candles) and the probability a scanner signal reaches TP1 before SL.
-- `src/nics/data/market.py`: scale-free candle features (ATR units),
+- `src/nics/market/data.py`: scale-free candle features (ATR units),
   forward labels, signal outcomes re-derived from candles (a bar touching
   TP1 and SL counts as a loss), time split with an embargo gap.
 - `scripts/fetch_market_data.py`: downloads a snapshot of our own data

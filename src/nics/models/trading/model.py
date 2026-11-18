@@ -1,7 +1,7 @@
 """NICS Trading -- market-sequence Transformer, trained from random initialisation.
 
 Input: a window of candles already turned into scale-free features
-(returns and ranges measured in ATR units, see nics.data.market), plus
+(returns and ranges measured in ATR units, see nics.market.data), plus
 the geometry of a scanner signal when one exists.
 
 Two heads, trained together:
