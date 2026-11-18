@@ -140,16 +140,17 @@ def horizon_label(s: Series, a: np.ndarray, i: int, horizon: int, flat_atr: floa
     return 0 if move < -flat_atr else (2 if move > flat_atr else 1)
 
 
-def signal_outcome(s: Series, start: int, direction: int, sl: float, tp1: float, max_bars: int) -> int | None:
-    """1 = TP1 before SL, 0 = SL first (or both in one bar), None = neither within max_bars."""
+def signal_outcome(s: Series, start: int, direction: int, sl: float, tp1: float, max_bars: int):
+    """(label, resolving bar index): label 1 = TP1 before SL, 0 = SL first (or both in
+    one bar). Returns (None, None) if neither is hit within max_bars."""
     for k in range(start, min(start + max_bars, len(s.c))):
         hit_sl = s.l[k] <= sl if direction > 0 else s.h[k] >= sl
         hit_tp = s.h[k] >= tp1 if direction > 0 else s.l[k] <= tp1
         if hit_sl:
-            return 0
+            return 0, k
         if hit_tp:
-            return 1
-    return None
+            return 1, k
+    return None, None
 
 
 def load_signals(snapshot: Path) -> list[dict]:
@@ -157,11 +158,18 @@ def load_signals(snapshot: Path) -> list[dict]:
         return list(csv.DictReader(f))
 
 
-def time_split(times: np.ndarray, fractions=(0.7, 0.15), embargo_seconds: float = 0.0):
-    """Masks (train, val, test) by time quantiles; samples inside an embargo gap after
-    each boundary are dropped so forward-looking labels cannot leak across splits."""
-    q1, q2 = np.quantile(times, [fractions[0], fractions[0] + fractions[1]])
-    train = times < q1 - embargo_seconds
-    val = (times >= q1) & (times < q2 - embargo_seconds)
-    test = times >= q2
+def time_split(start_times: np.ndarray, label_end_times: np.ndarray, fractions=(0.7, 0.15)):
+    """Masks (train, val, test) by time. Boundaries are quantiles of the sample start
+    times; a sample is kept only if its label is fully known before the next split
+    begins (label_end < boundary). This handles weekend and missing-bar gaps, where
+    a fixed number of bars can span far more wall-clock time."""
+    q1, q2 = np.quantile(start_times, [fractions[0], fractions[0] + fractions[1]])
+    train = label_end_times < q1
+    val = (start_times >= q1) & (label_end_times < q2)
+    test = start_times >= q2
     return train, val, test, (float(q1), float(q2))
+
+
+def last_closed_bar(s: Series, at: float, bar_seconds: int) -> int:
+    """Index of the last candle fully closed at time `at` (candle_time = open time)."""
+    return int(np.searchsorted(s.t + bar_seconds, at, side="right")) - 1

@@ -24,7 +24,9 @@ no silent, unversioned changes.
   candles) and the probability a scanner signal reaches TP1 before SL.
 - `src/nics/market/data.py`: scale-free candle features (ATR units),
   forward labels, signal outcomes re-derived from candles (a bar touching
-  TP1 and SL counts as a loss), time split with an embargo gap.
+  TP1 and SL counts as a loss), signal windows use only candles closed at
+  signal time, and the time split keeps a sample only if its label ends
+  before the next split starts (robust to weekend and missing-bar gaps).
 - `scripts/fetch_market_data.py`: downloads a snapshot of our own data
   (Vantage MT5 candles + scanner signals) from the n8n lab export into
   `data/market/<date>/` with checksums. Data stays on the training machine.

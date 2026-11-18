@@ -50,8 +50,8 @@ def git_commit() -> str:
 def build_samples(cfg, snapshot: Path):
     d = cfg.data
     series = market.load_candles(snapshot, d.interval)
-    hx, hy, ht = [], [], []
-    sx, sf, sy, st, sr, scost, sid = [], [], [], [], [], [], []
+    hx, hy, ht, he = [], [], [], []
+    sx, sf, sy, st, se, sr, scost, sid = [], [], [], [], [], [], [], []
     feats = {}
     for sym, s in series.items():
         f, a = market.bar_features(s)
@@ -61,7 +61,7 @@ def build_samples(cfg, snapshot: Path):
             y = market.horizon_label(s, a, i, d.horizon_bars, d.flat_atr)
             if w is None or y is None:
                 continue
-            hx.append(w); hy.append(y); ht.append(s.t[i])
+            hx.append(w); hy.append(y); ht.append(s.t[i]); he.append(s.t[i + d.horizon_bars])
 
     skipped = {"no_candles": 0, "no_window": 0, "no_outcome": 0, "bad_levels": 0}
     for r in market.load_signals(snapshot):
@@ -70,7 +70,8 @@ def build_samples(cfg, snapshot: Path):
             continue
         s, f, a = feats[r["symbol"]]
         t0 = market._ts(r["created_at"])
-        i = int(np.searchsorted(s.t, t0, side="right")) - 1
+        # window = candles already CLOSED at signal time (no peeking into the forming bar)
+        i = market.last_closed_bar(s, t0, d.bar_seconds)
         w = market.window(f, s.v, i, d.window) if i >= 0 else None
         if w is None or not a[i] > 0:
             skipped["no_window"] += 1
@@ -86,19 +87,21 @@ def build_samples(cfg, snapshot: Path):
         if sl_d <= 0 or tp_d <= 0:
             skipped["bad_levels"] += 1
             continue
-        y = market.signal_outcome(s, i + 1, direction, sl, tp1, d.signal_max_bars)
+        # outcome = first candle that opens at or after the signal time
+        k0 = int(np.searchsorted(s.t, t0, side="left"))
+        y, k_end = market.signal_outcome(s, k0, direction, sl, tp1, d.signal_max_bars)
         if y is None:
             skipped["no_outcome"] += 1
             continue
         spread_atr = s.spread[i] / a[i]
         sx.append(w)
         sf.append([direction, direction * (mid - s.c[i]) / a[i], sl_d, tp_d, tp_d / sl_d, spread_atr])
-        sy.append(y); st.append(t0); sr.append(tp_d / sl_d)
+        sy.append(y); st.append(t0); se.append(s.t[k_end] + d.bar_seconds); sr.append(tp_d / sl_d)
         scost.append(spread_atr / sl_d)  # round-trip spread in R units
         sid.append(r["id"])
     return {
-        "h": (np.array(hx), np.array(hy), np.array(ht)),
-        "s": (np.array(sx), np.array(sf, dtype=np.float32), np.array(sy), np.array(st),
+        "h": (np.array(hx), np.array(hy), np.array(ht), np.array(he)),
+        "s": (np.array(sx), np.array(sf, dtype=np.float32), np.array(sy), np.array(st), np.array(se),
               np.array(sr), np.array(scost), sid),
         "skipped": skipped,
         "symbols": sorted(series),
@@ -176,16 +179,15 @@ def main() -> None:
     set_seed(cfg.seed)
     snapshot = Path(args.snapshot)
     data = build_samples(cfg, snapshot)
-    hx, hy, ht = data["h"]
-    sx, sf, sy, st, sr, scost, sid = data["s"]
+    hx, hy, ht, he = data["h"]
+    sx, sf, sy, st, se, sr, scost, sid = data["s"]
     if len(hx) == 0:
         sys.exit("No horizon samples: snapshot has too few candles for the configured window.")
 
-    embargo = cfg.data.horizon_bars * cfg.data.bar_seconds
-    h_tr, h_va, h_te, bounds = market.time_split(ht, tuple(cfg.data.split), embargo)
+    h_tr, h_va, h_te, bounds = market.time_split(ht, he + cfg.data.bar_seconds, tuple(cfg.data.split))
     q1, q2 = bounds
-    s_tr = st < q1 - cfg.data.signal_max_bars * cfg.data.bar_seconds
-    s_va = (st >= q1) & (st < q2 - cfg.data.signal_max_bars * cfg.data.bar_seconds)
+    s_tr = se < q1
+    s_va = (st >= q1) & (se < q2)
     s_te = st >= q2
     split_info = {
         "train_until": datetime.fromtimestamp(q1, timezone.utc).isoformat(),
@@ -232,7 +234,9 @@ def main() -> None:
     Xs_tr, Fs_tr, Ys_tr = sx[s_tr], sf[s_tr], sy[s_tr]
     bs, best, best_state, bad_evals = cfg.training.batch_size, float("inf"), None, 0
     t0 = time.time()
+    last_step = 0
     for step in range(cfg.training.max_steps):
+        last_step = step
         lr = lr_at(step, cfg)
         for g in opt.param_groups:
             g["lr"] = lr
@@ -302,11 +306,13 @@ def main() -> None:
     manifest = json.loads((exp_dir / "manifest.json").read_text(encoding="utf-8"))
     manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
     manifest["best_val_score"] = best
+    manifest["final_step"] = last_step
     rel = exp_dir / "release"
     rel.mkdir(parents=True, exist_ok=True)
     (rel / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     export_release(rel, model, manifest)
-    tel.emit("training_completed", model_id=cfg.model_id, experiment_id=exp_id, best_val_loss=best)
+    tel.emit("training_completed", model_id=cfg.model_id, experiment_id=exp_id,
+             final_step=last_step, best_val_loss=best)
     print(f"Weights: {rel / 'model.safetensors'}")
 
 
