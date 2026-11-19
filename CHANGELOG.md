@@ -20,8 +20,10 @@ no silent, unversioned changes.
 - **Self-learning cycle** (`scripts/self_learn.py`, Windows tasks in
   `scripts/windows/`): nightly download of all our data, champion re-scored on
   the new data, warm-started challenger (weekly also from random weights),
-  promotion only if the challenger beats the champion on the same new test
-  split (`self_learning.min_improvement`); logs, history, housekeeping.
+  promotion only if the challenger beats the champion on the same new
+  validation data (`self_learning.min_improvement`); the test split is
+  report-only, never used for selection (review finding); logs, history,
+  housekeeping.
 - **Shadow scoring** (`scripts/score_live.py`) of new scanner signals by the
   champion, and a forward test of those scores against later outcomes
   (`scripts/eval_trading.py --predictions`). Nothing is sent or traded.

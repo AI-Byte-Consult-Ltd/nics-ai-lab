@@ -31,8 +31,8 @@ and be compared on real outcomes before it influences anything.
 
 `scripts/self_learn.py` runs nightly on the laptop: fresh data, champion
 re-scored on it, warm-started challenger (weekly one from random weights),
-promotion only when the challenger's test_score beats the champion's on the
-same new test split. The champion scores live signals in the shadow
+promotion only when the challenger's validation score beats the champion's on
+the same new data. The test split is report-only and never used for selection. The champion scores live signals in the shadow
 (`scripts/score_live.py`); those scores are later checked against real
 outcomes (forward test). It does not trade or send signals.
 

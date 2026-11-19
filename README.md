@@ -59,7 +59,8 @@ scripts\windows\install_tasks.bat              :: nightly self-learning 03:30 + 
 
 The self-learning cycle (`scripts/self_learn.py`) downloads fresh data, re-scores the
 champion on it, trains a warm-started challenger (and weekly one from random weights),
-and promotes a challenger only if it beats the champion on the same new test data.
+and promotes a challenger only if it beats the champion on the same new validation data
+(the test split is never used for the choice, only reported).
 `scripts/score_live.py` scores new scanner signals in the shadow; the next cycle checks
 those scores against the outcomes that followed (forward test). Nothing trades.
 

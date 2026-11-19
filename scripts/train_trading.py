@@ -225,6 +225,7 @@ def main() -> None:
     manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
     manifest["best_val_score"] = best
     manifest["final_step"] = last_step
+    manifest["val_score"] = metrics["val_score"]
     manifest["test_score"] = metrics["test_score"]
     rel = exp_dir / "release"
     rel.mkdir(parents=True, exist_ok=True)

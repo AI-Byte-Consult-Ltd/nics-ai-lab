@@ -7,8 +7,11 @@ Run nightly on the laptop (scripts/windows/install_tasks.bat sets that up):
      and check its live shadow predictions against outcomes that happened since;
   3. train a challenger warm-started from the champion (and, once a week, one
      from random weights, so the model can also escape its own history);
-  4. promote the challenger only if its test_score beats the champion's by at
-     least self_learning.min_improvement; otherwise the champion stays;
+  4. promote the challenger only if its VALIDATION score on the new data beats the
+     champion's by at least self_learning.min_improvement; otherwise the champion
+     stays. The test split is never used for this choice (it would stop being an
+     honest held-out measurement); it is only reported, next to the forward test of
+     live shadow predictions;
   5. log everything, delete old snapshots and old resume checkpoints.
 
 Nothing here trades or sends signals. The champion is used for shadow scoring only
@@ -102,8 +105,9 @@ def main() -> None:
                      "--snapshot", str(snap), "--predictions", str(base / "shadow" / "predictions.csv"),
                      "--out", str(out)], log)
                 ev = json.loads(out.read_text())
-                champ_score = ev["test_score"]
-                report["champion"] = {"experiment_id": champion["experiment_id"], "test_score": champ_score,
+                champ_score = ev["val_score"]
+                report["champion"] = {"experiment_id": champion["experiment_id"], "val_score": champ_score,
+                                      "test_score": ev["test_score"],
                                       "forward_shadow": ev.get("forward_shadow")}
             except RuntimeError as e:  # e.g. feature schema changed after a code update
                 log(f"champion cannot be evaluated on current code, it will be replaced: {e}")
@@ -127,23 +131,25 @@ def main() -> None:
                         "--experiment-id", exp] + extra, log)
             rel = Path(re.findall(r"RELEASE_DIR=(.+)", outp)[-1].strip())
             m = json.loads((rel / "metrics.json").read_text())
-            results.append({"kind": kind, "experiment_id": exp, "release": str(rel), "test_score": m["test_score"],
+            results.append({"kind": kind, "experiment_id": exp, "release": str(rel), "val_score": m["val_score"],
+                            "test_score": m["test_score"],
                             "signal_test_auc": (m.get("signal") or {}).get("test", {}).get("auc"),
                             "horizon_test_acc": m["horizon"]["test"].get("accuracy"),
                             "horizon_majority": m["horizon"]["test"].get("majority_baseline")})
-            log(f"challenger {exp}: test_score {m['test_score']:.4f}")
+            log(f"challenger {exp}: val_score {m['val_score']:.4f} (test {m['test_score']:.4f}, report only)")
         report["challengers"] = results
 
         # 4. promote
-        best = min(results, key=lambda r: r["test_score"]) if results else None
+        best = min(results, key=lambda r: r["val_score"]) if results else None
         margin = float(sl.get("min_improvement", 0.002))
-        promote = best is not None and (champ_score is None or best["test_score"] < champ_score - margin)
+        promote = best is not None and (champ_score is None or best["val_score"] < champ_score - margin)
         if promote:
             if champ_dir.exists():
                 shutil.rmtree(champ_dir)
             shutil.copytree(best["release"], champ_dir)
             new = {"experiment_id": best["experiment_id"], "release": best["release"],
-                   "promoted_at": datetime.now(timezone.utc).isoformat(), "test_score": best["test_score"],
+                   "promoted_at": datetime.now(timezone.utc).isoformat(), "val_score": best["val_score"],
+                   "test_score": best["test_score"],
                    "replaced": champion and champion.get("experiment_id"), "replaced_score_on_same_data": champ_score,
                    "snapshot": snap.name,
                    "last_scratch_at": (datetime.now(timezone.utc).isoformat() if need_scratch
@@ -151,12 +157,12 @@ def main() -> None:
             champ_json.write_text(json.dumps(new, indent=2))
             with open(base / "champion_history.jsonl", "a", encoding="utf-8") as f:
                 f.write(json.dumps(new) + "\n")
-            log(f"PROMOTED {best['experiment_id']} ({best['test_score']:.4f} vs {champ_score})")
+            log(f"PROMOTED {best['experiment_id']} (val {best['val_score']:.4f} vs {champ_score})")
         else:
             if champion and need_scratch:
                 champion["last_scratch_at"] = datetime.now(timezone.utc).isoformat()
                 champ_json.write_text(json.dumps(champion, indent=2))
-            log(f"champion kept ({champ_score}); best challenger {best and best['test_score']}")
+            log(f"champion kept (val {champ_score}); best challenger {best and best['val_score']}")
         report["promoted"] = bool(promote)
         report["champion_now"] = json.loads(champ_json.read_text())["experiment_id"] if champ_json.exists() else None
 

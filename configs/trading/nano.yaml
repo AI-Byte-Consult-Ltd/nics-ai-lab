@@ -33,7 +33,7 @@ self_learning:           # scripts/self_learn.py (nightly cycle on the laptop)
   finetune_steps: 1500   # warm-start from the champion with this many steps
   lr_scale: 0.5          # half the learning rate when fine-tuning
   scratch_every_days: 7  # also train a fresh model from random weights once a week
-  min_improvement: 0.002 # challenger must beat the champion's test_score by at least this
+  min_improvement: 0.002 # challenger must beat the champion's validation score by at least this (test is report-only)
   keep_snapshots: 3      # older data/market/<date>/ folders are deleted
 
 training:

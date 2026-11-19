@@ -217,6 +217,7 @@ def final_metrics(model, win, H, S, splits, cfg) -> dict:
     hm["test_broker_only"] = eval_horizon(model, win, H, h_te & own)
     m["horizon"] = hm
     score = hm["test"].get("loss", 0.0)
+    vscore = hm["val"].get("loss", 0.0)
     if s_va.any() and s_te.any():
         pv, pt = predict_signal(model, win, S, s_va), predict_signal(model, win, S, s_te)
         rv = r_per_trade(S["y"][s_va], S["rr"][s_va], S["cost"][s_va])
@@ -239,9 +240,11 @@ def final_metrics(model, win, H, S, splits, cfg) -> dict:
             "test_filtered_trades": int(keep_t.sum()), "test_all_trades": int(len(rt)),
         }
         score += cfg.training.signal_loss_weight * st["bce"]
+        vscore += cfg.training.signal_loss_weight * m["signal"]["val"]["bce"]
     else:
         m["signal"] = {"note": "Not enough setups with outcomes in val/test yet."}
-    m["test_score"] = float(score)  # lower is better; used to compare champion and challenger
+    m["val_score"] = float(vscore)   # lower is better; the ONLY score used to pick a champion
+    m["test_score"] = float(score)   # lower is better; reported, never used for selection
     return m
 
 
