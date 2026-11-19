@@ -115,6 +115,13 @@ def main() -> None:
                 run([py, "scripts/fetch_public_history.py", "--snapshot", str(snap)], log)
             except RuntimeError as e:
                 log(f"public history skipped: {e}")
+            dk = cfg.data.get("dukascopy") or {}
+            if cfg.data.get("use_public", True) and dk.get("enabled", True):
+                try:  # long H1/H4 history; cached, so only the newest months are downloaded again
+                    run([py, "scripts/fetch_dukascopy.py", "--snapshot", str(snap),
+                         "--from-year", str(dk.get("from_year", 2008))], log)
+                except RuntimeError as e:
+                    log(f"Dukascopy history skipped: {e}")
         prev = sorted(p for p in (ROOT / "data" / "market").glob("*") if p.is_dir() and p != snap)
         for older in reversed(prev):  # keep our MT5 trades: carry the latest file of each account forward
             for f in older.glob("own_trades_*.csv"):

@@ -59,6 +59,9 @@ def make_snapshot(d: Path, bars: int = 3000) -> None:
         for i, (o, h, lo, c) in enumerate(walk(rnd, 1500.0, 1500, 0.01)):
             ts = (t0 - timedelta(days=1500 - i)).isoformat()
             w.writerow(["public:yahoo:GC=F", "XAU/USD", "1day", ts, o, h, lo, c, 0, "", ""])
+        for i, (o, h, lo, c) in enumerate(walk(rnd, 1.2, 3000, 0.002)):  # long public H1 (Dukascopy-like)
+            ts = (t0 - timedelta(hours=3000 - i)).isoformat()
+            w.writerow(["public:dukascopy:EURUSD", "EUR/USD", "1h", ts, o, h, lo, c, 1, "", ""])
     with open(d / "signals.csv", "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["id", "symbol", "direction", "entry_low", "entry_high", "stop_loss", "tp1", "status",
@@ -118,6 +121,8 @@ def main() -> None:
         assert {"scanner_scheduled", "scanner_targeted", "shadow", "own_trade"} <= set(kinds), kinds
         assert any(k.startswith("method_") for k in kinds), kinds  # methodology setups were generated
         assert man["split"]["horizon_samples"]["train_public"] > 0
+        sp = man["split"]["setup_samples"]
+        assert sp["public_train"] > 0 and sp["public_in_val_or_test"] == 0, sp  # public setups only teach
         assert set(man["split"]["horizon_samples"]["train_by_timeframe"]) >= {"15min", "1h", "1day"}
         assert "test_by_timeframe" in metrics["horizon"]
         print("SMOKE TEST PASSED (synthetic data, results meaningless)")

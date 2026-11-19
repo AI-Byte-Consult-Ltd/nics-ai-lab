@@ -120,6 +120,9 @@ def main() -> None:
                             "train_by_timeframe": by(H["iv"], h_tr, market.INTERVALS),
                             "train_public": int((h_tr & ~own).sum())},
         "setup_samples": {"train": int(s_tr.sum()), "val": int(s_va.sum()), "test": int(s_te.sum()),
+                          "public_train": int((s_tr & S["public"].astype(bool)).sum()) if len(S["y"]) else 0,
+                          "public_in_val_or_test": int(((s_va | s_te) & S["public"].astype(bool)).sum())
+                          if len(S["y"]) else 0,
                           "all_by_kind": by(S["kind"], np.ones(len(S["kind"]), bool)) if len(S["kind"]) else {}},
         "setups_skipped": info["skipped"],
         "label_agreement_with_tracker": info["tracker_agreement"],
@@ -163,6 +166,9 @@ def main() -> None:
 
     tel = TelemetryWriter(exp_dir / "events.jsonl")
     tr_h, tr_s = np.flatnonzero(h_tr), np.flatnonzero(s_tr)
+    s_pub = S["public"].astype(bool) if len(S["y"]) else np.zeros(0, bool)
+    # public-history setups can outnumber ours 50:1: every signal batch is half ours, half public
+    tr_s_own, tr_s_pub = np.flatnonzero(s_tr & ~s_pub), np.flatnonzero(s_tr & s_pub)
     if len(tr_h) == 0:
         sys.exit("No training samples before the split boundary.")
     h_va_eval = subsample(h_va, int(cfg.training.get("eval_max_samples", 20000)), rng)
@@ -179,7 +185,12 @@ def main() -> None:
         xb = torch.from_numpy(win(H["sid"][ix], H["end"][ix]))
         _, loss = model.forward_horizon(xb, torch.from_numpy(H["y"][ix].astype(np.int64)))
         if use_signal:
-            jx = tr_s[rng.integers(0, len(tr_s), min(bs, len(tr_s)))]
+            if len(tr_s_own) and len(tr_s_pub):
+                half = bs // 2
+                jx = np.concatenate([tr_s_own[rng.integers(0, len(tr_s_own), half)],
+                                     tr_s_pub[rng.integers(0, len(tr_s_pub), bs - half)]])
+            else:
+                jx = tr_s[rng.integers(0, len(tr_s), min(bs, len(tr_s)))]
             _, sloss = model.forward_signal(torch.from_numpy(win(S["sid"][jx], S["end"][jx])),
                                             torch.from_numpy(S["f"][jx]),
                                             torch.from_numpy(S["y"][jx].astype(np.int64)))

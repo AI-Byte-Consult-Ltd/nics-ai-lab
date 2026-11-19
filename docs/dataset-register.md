@@ -98,6 +98,18 @@ never republished. Commercial use is unclear (eligibility rule 2), so a
 model meant to ship is either retrained with `--no-public` or the terms are
 confirmed first. Added on Alexander's explicit request.
 
+### `nics-dukascopy-history-v1` (added 2026-11-19)
+
+Public H1 history from Dukascopy (FX, gold, silver, Brent, indices, BTC) since
+2008, with H4 bars built from it, fetched by `scripts/fetch_dukascopy.py`
+(monthly files, about one request per second, cached in `data/cache/`). The
+high/low columns and the price scale are detected from the data and checked
+against our broker price. Our methodologies also run on this history; those
+setups are labelled on the same candles and used **for training only**, never
+in validation or test. **License caveat:** same as `nics-public-history-v1`:
+internal research only, never republished, retrain with `--no-public` before
+shipping. Added on Alexander's request (19.11).
+
 ### `nics-own-trades-v1` (added 2026-11-18)
 
 Our closed positions from the MT5 terminal (prop, Vantage, algo accounts),

@@ -10,7 +10,10 @@ model:
 data:
   window: 96             # bars per input window, on every timeframe
   flat_atr: 0.5          # horizon head: |move| < 0.5 ATR = flat
-  use_public: true       # public D1/W1 history (public_candles.csv); --no-public turns it off
+  use_public: true       # public history (public_candles.csv); --no-public turns it off
+  dukascopy:             # public H1/H4 history since from_year (scripts/fetch_dukascopy.py, cached)
+    enabled: true
+    from_year: 2008
   # Every timeframe we have. stride = one sample every N bars, horizon = bars ahead for the label.
   intervals:
     1min:  {stride: 30, horizon: 60}   # where is price 1 hour later
@@ -28,6 +31,7 @@ methods:                 # trading methodologies run on history -> extra labelle
   enabled: true          # src/nics/market/methods.py (range both sides, breakout, EMA pullback, level bounce)
   intervals: [1h, 4h]
   cooldown_bars: 6       # at most one setup per method and direction every 6 bars
+  on_public: true        # also run them on public history (labelled on those candles, training only)
 
 self_learning:           # scripts/self_learn.py (nightly cycle on the laptop)
   finetune_steps: 1500   # warm-start from the champion with this many steps
