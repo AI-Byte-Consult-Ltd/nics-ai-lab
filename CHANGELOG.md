@@ -14,6 +14,37 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.5.0] - 2026-11-19
+
+### Added
+- **Self-learning cycle** (`scripts/self_learn.py`, Windows tasks in
+  `scripts/windows/`): nightly download of all our data, champion re-scored on
+  the new data, warm-started challenger (weekly also from random weights),
+  promotion only if the challenger beats the champion on the same new test
+  split (`self_learning.min_improvement`); logs, history, housekeeping.
+- **Shadow scoring** (`scripts/score_live.py`) of new scanner signals by the
+  champion, and a forward test of those scores against later outcomes
+  (`scripts/eval_trading.py --predictions`). Nothing is sent or traded.
+- **Indicators and candle patterns** as bar features
+  (`src/nics/market/indicators.py`): RSI, EMA 20/50/200 distance and slope,
+  MACD histogram, Bollinger position, stochastic, ADX, 20/100-bar
+  channel distances; engulfing, hammer / shooting star, doji, inside and
+  outside bars. All causal.
+- **Trading methodologies** (`src/nics/market/methods.py`): range traded from
+  both sides, 20-bar breakout, EMA pullback, level bounce, run on broker
+  H1/H4 history; their setups are labelled from candles and the method is a
+  feature, so the model learns which method works in which market.
+- **How the scanner defines a signal** as setup features: confidence,
+  opportunity and technical scores, TP2/TP3 reward/risk, strategy version,
+  and the daily-range "room left" (ATR rule).
+- Proprietary **commercial license** of AI Byte Consult Ltd; free use
+  prohibited.
+- Russian laptop guide `docs/laptop-guide-ru.md`.
+
+### Fixed
+- EA manual signals without an actual fill are no longer labelled as trades
+  (review finding on 0.4.0).
+
 ## [0.4.0] - 2026-11-18
 
 ### Changed

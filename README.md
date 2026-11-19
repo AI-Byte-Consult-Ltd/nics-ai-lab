@@ -1,6 +1,6 @@
 # NICS AI Lab
 
-**Version 0.3.0** -- see [`CHANGELOG.md`](CHANGELOG.md) for release history.
+**Version 0.5.0** -- see [`CHANGELOG.md`](CHANGELOG.md) for release history.
 Every merged change bumps this version; there are no unversioned changes.
 
 Independent model training infrastructure for **AI Byte Consult Ltd** / the
@@ -33,7 +33,7 @@ these models. See [`model_cards/`](model_cards/) for per-model provenance.
 |---|---|---|---|
 | `nics-text-nano` | First run complete | ~869K | CPU-trained, `tinyshakespeare-v1` dataset, proof-of-pipeline scale |
 | `nics-vision-nano` | First run complete | ~34K | CPU-trained, `fashion-mnist-v1`, 87.1% val accuracy, pipeline scale |
-| `nics-trading-nano` | Prototype: code ready, not trained yet | ~164K | NICS Trading; trains on all our trading data (`nics-market-v2`, own trades) plus public D1/W1 history, on the laptop |
+| `nics-trading-nano` | Prototype: self-learning pipeline ready, not trained on real data yet | ~167K | NICS Trading; trains on all our trading data (`nics-market-v2`, own trades) plus public D1/W1 history, on the laptop |
 | `nics-text-alpha` | Planned | -- | |
 | `nics-vision-alpha` | Planned | -- | |
 
@@ -47,22 +47,27 @@ called ready before it has been checked.
 
 ## NICS Trading quickstart (laptop, CPU)
 
-```bash
-# 1. all our trading data (candles on every timeframe, all signals + outcomes,
-#    shadow strategies, EA signals, calendar) -- stays in data/, not in git
-set NICS_DATA_URL=https://n8n.aibyteconsult.com/webhook/nics-lab-market-export
-set NICS_DATA_KEY=<key from n8n "[41 LAB] Market Data Export" -> "Create or Show Lab Key">
-python scripts/fetch_market_data.py
-# 2. public D1/W1 history (years of context the broker store does not have)
-python scripts/fetch_public_history.py --snapshot data/market/<date>
-# 3. our own closed trades from the MT5 terminal (open and logged in), once per account
-pip install MetaTrader5
-python scripts/fetch_mt5_history.py --snapshot data/market/<date> --label prop
-# 4. train from random weights; weights land in experiments/trading/nics-trading-nano/<exp>/release/
-python scripts/train_trading.py --config configs/trading/nano.yaml --snapshot data/market/<date>
-# pipeline self-check on synthetic data (results meaningless)
-python tests/test_trading_pipeline.py
+Step-by-step guide in Russian: [`docs/laptop-guide-ru.md`](docs/laptop-guide-ru.md).
+
+```bat
+scripts\windows\setup.bat                      :: venv + dependencies + self-check
+setx NICS_DATA_URL https://n8n.aibyteconsult.com/webhook/nics-lab-market-export
+setx NICS_DATA_KEY <key from n8n "[41 LAB] Market Data Export">
+python scripts\self_learn.py --from-scratch     :: first cycle: download everything, train, crown a champion
+scripts\windows\install_tasks.bat              :: nightly self-learning 03:30 + hourly shadow scoring
 ```
+
+The self-learning cycle (`scripts/self_learn.py`) downloads fresh data, re-scores the
+champion on it, trains a warm-started challenger (and weekly one from random weights),
+and promotes a challenger only if it beats the champion on the same new test data.
+`scripts/score_live.py` scores new scanner signals in the shadow; the next cycle checks
+those scores against the outcomes that followed (forward test). Nothing trades.
+
+Building blocks: `fetch_market_data.py` (all our data), `fetch_public_history.py`
+(public D1/W1), `fetch_mt5_history.py` (our MT5 trades), `train_trading.py`,
+`eval_trading.py`; methodologies in `src/nics/market/methods.py`, indicators and
+patterns in `src/nics/market/indicators.py`. Self-checks on synthetic data:
+`tests/test_trading_pipeline.py`, `tests/test_self_learning.py`.
 
 ## Repository layout
 
@@ -103,7 +108,10 @@ current version lives in [`VERSION`](VERSION) and every change is logged in
 
 ## License
 
-Proprietary, all rights reserved -- see [`LICENSE`](LICENSE). Not open source.
+**Proprietary commercial license of AI Byte Consult Ltd** -- see [`LICENSE`](LICENSE).
+Not open source. Free use is prohibited: any use, copying, training, hosting or
+distribution requires a signed paid commercial license from AI Byte Consult Ltd
+(info@aibyteconsult.com). Public visibility of the code grants no rights.
 Model weights, checkpoints and datasets are governed separately -- see
 [`docs/model-ownership.md`](docs/model-ownership.md) and
 [`docs/dataset-register.md`](docs/dataset-register.md).
