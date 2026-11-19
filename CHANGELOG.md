@@ -14,6 +14,15 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.5.2] - 2026-11-19
+
+### Changed
+- `install_tasks.bat` now registers the tasks through `install_tasks.ps1`
+  (Register-ScheduledTask): a missed 03:30 run starts as soon as the laptop is
+  on again (StartWhenAvailable), both tasks wait for a network connection and
+  run on battery, no overlapping runs. The laptop does not have to stay on.
+- Laptop guide section 5 rewritten accordingly.
+
 ## [0.5.1] - 2026-11-19
 
 ### Fixed
