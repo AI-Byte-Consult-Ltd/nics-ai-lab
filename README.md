@@ -53,7 +53,7 @@ Step-by-step guide in Russian: [`docs/laptop-guide-ru.md`](docs/laptop-guide-ru.
 scripts\windows\setup.bat                      :: venv + dependencies + self-check
 setx NICS_DATA_URL https://n8n.aibyteconsult.com/webhook/nics-lab-market-export
 setx NICS_DATA_KEY <key from n8n "[41 LAB] Market Data Export">
-python scripts\self_learn.py --from-scratch     :: first cycle: download everything, train, crown a champion
+.\venv\Scripts\python.exe scripts\self_learn.py --from-scratch :: first cycle: download everything, train, crown a champion
 scripts\windows\install_tasks.bat              :: nightly self-learning 03:30 + hourly shadow scoring
 ```
 

@@ -14,6 +14,18 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.5.1] - 2026-11-19
+
+### Fixed
+- Windows setup: `requirements/cpu.txt` used `--index-url` for the PyTorch CPU
+  index, which hid PyPI, so `pyyaml` and then `torch` were not installed. Now
+  `--extra-index-url`.
+- `scripts/windows/*.bat` call `venv\Scripts\python.exe` directly (no
+  `activate`, which PowerShell blocks by default) and `setup.bat` stops with
+  `SETUP FAILED` on the first error instead of carrying on.
+- Laptop guide: PowerShell-safe commands, open a new window after `setx`,
+  three new troubleshooting rows.
+
 ## [0.5.0] - 2026-11-19
 
 ### Added
