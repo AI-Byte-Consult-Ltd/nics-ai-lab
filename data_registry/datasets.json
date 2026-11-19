@@ -93,6 +93,24 @@
     "notes": "Not our broker's prices (futures vs spot, index vs CFD). Features are scale-free (ATR units), so the model learns market shape from them. Every row keeps its source. Added on Alexander's request (2026-11-18) to train on all available public data we use."
   },
   {
+    "dataset_id": "nics-dukascopy-history-v1",
+    "name": "Public H1/H4 market history (Dukascopy)",
+    "source": "Dukascopy historical data feed, monthly hourly candle files (FX, XAU, XAG, Brent, indices, BTC)",
+    "source_url": [
+      "https://datafeed.dukascopy.com/datafeed/"
+    ],
+    "version": "1 (per snapshot: rows with source public:dukascopy:* in public_candles.csv)",
+    "acquisition_date": "per snapshot, see manifest.json dukascopy_history",
+    "license": "Third-party public market data. Used for internal research/training only, nothing republished.",
+    "permitted_use": "internal training and evaluation; not redistributed",
+    "commercial_use": "unclear -- review before shipping a model trained with it commercially, or train with --no-public",
+    "personal_data_risk": "none",
+    "copyright_risk": "medium -- third-party terms; raw data is never republished",
+    "checksum_sha256": "per snapshot, in manifest.json",
+    "size_bytes": "per snapshot",
+    "notes": "Since 2008. High/low columns and price scale detected from the data and checked against our broker close (15 % tolerance). Methodology setups on this history are training-only. Downloads are paced (~1 request/s), cached, and stop for the night after repeated 429/503."
+  },
+  {
     "dataset_id": "nics-own-trades-v1",
     "name": "Our closed MT5 positions",
     "source": "MetaTrader 5 terminal trade history of our accounts (prop, Vantage, algo), read locally with the official MetaTrader5 Python package",

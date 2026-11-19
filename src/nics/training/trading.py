@@ -104,17 +104,27 @@ def build_samples(cfg, snapshot: Path, use_public: bool, label_setups: bool = Tr
     mcfg = cfg.get("methods") or {}
     if mcfg.get("enabled", True):
         gen = methodologies.generate(series, set(mcfg.get("intervals", ["1h", "4h"])), market.WARMUP,
-                                     int(mcfg.get("cooldown_bars", 6)))
-        setups += [st for st in gen if st["symbol"] in broker]
+                                     int(mcfg.get("cooldown_bars", 6)), public=bool(mcfg.get("on_public", True)))
+        # broker-timeframe setups are labelled on broker candles; public-history setups on their own series
+        setups += [st for st in gen if st["symbol"] in broker or series[st["series"]].public]
     tracker = market.recorded_tp1(snapshot)
-    S = {k: [] for k in ("sid", "end", "f", "y", "t0", "t1", "rr", "cost", "kind", "id")}
+    S = {k: [] for k in ("sid", "end", "f", "y", "t0", "t1", "rr", "cost", "kind", "id", "public")}
+    max_hours = d.signal_max_bars * market.INTERVAL_SECONDS[sig_iv] / 3600
     agree = {"n": 0, "same": 0}
 
     def skip(reason):
         skipped[reason] = skipped.get(reason, 0) + 1
 
     for st in setups:
-        k, s = broker[st["symbol"]]
+        pub = "series" in st and series[st["series"]].public
+        if pub:
+            k = st["series"]; s = series[k]
+            if k not in room:
+                room[k] = market.day_range_used(s)
+        else:
+            k, s = broker[st["symbol"]]
+        sroom = room[k] if pub else room[st["symbol"]]
+        max_bars = max(1, int(max_hours * 3600 / s.bar_seconds)) if pub else d.signal_max_bars
         a = s.atr
         i = market.last_closed_bar(s, st["t"])  # window = bars CLOSED at setup time
         if i < first_ok or not a[i] > 0 or np.isnan(s.feats[i - d.window + 1:i + 1]).any():
@@ -123,18 +133,18 @@ def build_samples(cfg, snapshot: Path, use_public: bool, label_setups: bool = Tr
         y, t1 = -1, np.inf
         if label_setups:
             k0 = int(np.searchsorted(s.t, st["t"], side="left"))  # outcome from the bar in progress on
-            y, k_end = market.signal_outcome(s, k0, st["direction"], st["sl"], st["tp1"], d.signal_max_bars)
+            y, k_end = market.signal_outcome(s, k0, st["direction"], st["sl"], st["tp1"], max_bars)
             if y is None:
                 skip(f"{st['kind']}:no_outcome_yet")
                 continue
             t1 = s.t[k_end] + s.bar_seconds
             if st["id"] in tracker:
                 agree["n"] += 1; agree["same"] += int(tracker[st["id"]] == y)
-        f = setup_features(st, s, i, room[st["symbol"]])
+        f = setup_features(st, s, i, sroom)
         S["sid"].append(k); S["end"].append(i); S["y"].append(y); S["f"].append(f)
         S["t0"].append(st["t"]); S["t1"].append(t1)
         S["rr"].append(f[4]); S["cost"].append(f[5] / f[2])  # round-trip spread in R
-        S["kind"].append(st["kind"]); S["id"].append(st["id"])
+        S["kind"].append(st["kind"]); S["id"].append(st["id"]); S["public"].append(pub)
     S = {k: np.array(v, dtype=np.float32 if k == "f" else None) for k, v in S.items()}
     if len(S["f"]) == 0:
         S["f"] = np.zeros((0, len(market.SIGNAL_FEATURES)), dtype=np.float32)
@@ -147,6 +157,9 @@ def make_splits(H, S, fractions):
     q1, q2 = market.split_bounds(H["t0"][own] if own.any() else H["t0"], tuple(fractions))
     h = market.apply_split(H["t0"], H["t1"], q1, q2)
     s = market.apply_split(S["t0"], S["t1"], q1, q2) if len(S["y"]) else (np.zeros(0, bool),) * 3
+    if len(S["y"]) and "public" in S:  # public-history setups only teach; val/test = our own setups
+        pub = S["public"].astype(bool)
+        s = (s[0], s[1] & ~pub, s[2] & ~pub)
     return h, s, (q1, q2), own
 
 

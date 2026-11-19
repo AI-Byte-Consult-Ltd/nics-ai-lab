@@ -129,11 +129,13 @@ METHODS = {
 }
 
 
-def generate(series_list, intervals, warmup: int, cooldown_bars: int = 6) -> list[dict]:
-    """Run every methodology on every broker series of the given timeframes."""
+def generate(series_list, intervals, warmup: int, cooldown_bars: int = 6, public: bool = False) -> list[dict]:
+    """Run every methodology on every series of the given timeframes: broker series, and
+    with public=True also long public history. Each setup carries "series" (index in
+    series_list) so a public setup can be labelled on its own candles."""
     out = []
-    for s in series_list:
-        if s.public or s.interval not in intervals or s.atr is None:
+    for n, s in enumerate(series_list):
+        if (s.public and not public) or s.interval not in intervals or s.atr is None:
             continue
         x = _ctx(s)
         for fn in METHODS.values():
@@ -143,5 +145,8 @@ def generate(series_list, intervals, warmup: int, cooldown_bars: int = 6) -> lis
                 if i - last[st["direction"]] < cooldown_bars:
                     continue
                 last[st["direction"]] = i
+                st["series"] = n
+                if s.public:
+                    st["id"] = "pub-" + st["id"]
                 out.append(st)
     return out

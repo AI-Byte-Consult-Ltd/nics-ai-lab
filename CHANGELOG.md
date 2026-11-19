@@ -14,6 +14,22 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.6.0] - 2026-11-19
+
+### Added
+- **Long public H1/H4 history from Dukascopy** (`scripts/fetch_dukascopy.py`,
+  dataset `nics-dukascopy-history-v1`): FX, gold, silver, Brent, indices and BTC
+  since 2008 (`data.dukascopy.from_year`). Monthly files, paced and cached in
+  `data/cache/dukascopy/`; high/low columns and price scale detected from the data
+  and checked against our broker close. The nightly cycle runs it after the
+  D1/W1 download; a refusal or failure only skips it for that night.
+- **Methodologies on public history** (`methods.on_public`): the four methods run
+  on every public 1h/4h series too, labelled on the same candles over the same
+  48 h. These setups are training-only (never in validation or test, so the
+  champion is still chosen on our own signals), and every signal batch is half
+  our setups, half public ones.
+- `tests/test_dukascopy.py` (offline, synthetic file).
+
 ## [0.5.2] - 2026-11-19
 
 ### Changed
