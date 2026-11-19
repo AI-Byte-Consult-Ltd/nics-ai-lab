@@ -1,6 +1,6 @@
 # NICS Trading: инструкция для ноутбука (Windows)
 
-Версия 0.5.0, 19.11.2026. Всё делается один раз. Потом модель учится сама каждую ночь.
+Версия 0.5.1, 19.11.2026. Всё делается один раз. Потом модель учится сама каждую ночь.
 
 ## 0. Что это за репозиторий и что с ним делать
 
@@ -24,7 +24,7 @@
 1. Поставьте Git: https://git-scm.com/download/win (все галочки по умолчанию).
 2. Поставьте Python 3.11 или 3.12 (64-bit): https://www.python.org/downloads/windows/.
    При установке отметьте **Add python.exe to PATH**.
-3. Откройте «Командную строку» (Win+R → `cmd`) и выполните:
+3. Откройте PowerShell или «Командную строку» (Win+R → `cmd`) и выполните:
 
 ```
 mkdir C:\NICS
@@ -35,7 +35,12 @@ scripts\windows\setup.bat
 ```
 
 `setup.bat` создаёт окружение `venv`, ставит библиотеки (PyTorch для процессора,
-MetaTrader5) и запускает проверку. В конце должно быть `SMOKE TEST PASSED`.
+MetaTrader5) и запускает проверку. В конце должно быть `SMOKE TEST PASSED` и `Setup OK`.
+Если вместо этого `SETUP FAILED`, пришлите мне текст из окна.
+
+Все команды ниже запускают Python из папки `venv` напрямую:
+`.\venv\Scripts\python.exe ...`. Так работает и в PowerShell, и в cmd, и не нужна
+команда `activate` (PowerShell её по умолчанию блокирует).
 
 Старый скачанный архив можно удалить. Если старая папка `nics-ai-lab` с весами
 Language/Vision уже есть, не удаляйте её: в ней `experiments\` с весами двух первых
@@ -50,15 +55,14 @@ setx NICS_DATA_URL https://n8n.aibyteconsult.com/webhook/nics-lab-market-export
 setx NICS_DATA_KEY ВАШ_КЛЮЧ
 ```
 
-Закройте окно командной строки и откройте новое: `setx` действует только в новых
-окнах. Ключ никому не пересылайте и в файлы не вставляйте.
+**Закройте окно и откройте новое**: `setx` действует только в новых окнах. Если
+запустить обучение в том же окне, программа ключа не увидит. Ключ никому не пересылайте и в файлы не вставляйте.
 
 ## 3. Первый запуск вручную
 
 ```
 cd C:\NICS\nics-ai-lab
-venv\Scripts\activate
-python scripts\self_learn.py --from-scratch
+.\venv\Scripts\python.exe scripts\self_learn.py --from-scratch
 ```
 
 Что произойдёт:
@@ -78,7 +82,7 @@ python scripts\self_learn.py --from-scratch
 Откройте терминал MT5, войдите в проп-счёт и выполните:
 
 ```
-python scripts\fetch_mt5_history.py --snapshot data\market\ДАТА --label prop
+.\venv\Scripts\python.exe scripts\fetch_mt5_history.py --snapshot data\market\ДАТА --label prop
 ```
 
 `ДАТА` — сегодняшняя папка в `data\market\`, например `2026-11-19`. Потом войдите в
@@ -159,6 +163,9 @@ scripts\windows\install_tasks.bat
 |---|---|
 | `403: wrong NICS_DATA_KEY` | ключ неверный, повторите шаг 2 с ключом из n8n |
 | `Set NICS_DATA_URL and NICS_DATA_KEY first` | откройте новое окно после `setx` |
+| `Could not find a version that satisfies the requirement pyyaml` | старая версия установки: `git pull`, потом снова `scripts\windows\setup.bat` |
+| `No module named 'torch'` | запущен не тот Python: используйте `.\venv\Scripts\python.exe` |
+| `running scripts is disabled on this system` | не используйте `activate`, запускайте `.\venv\Scripts\python.exe` |
 | `No champion yet` | сначала шаг 3 |
 | `MT5 initialize failed` | откройте терминал MT5 и войдите в счёт |
 | `Another cycle is running` | если ночной цикл точно не идёт, удалите `self_learn.lock` |

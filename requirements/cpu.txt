@@ -1,3 +1,4 @@
 -r base.txt
---index-url https://download.pytorch.org/whl/cpu
+# PyTorch CPU wheels as an EXTRA index: PyPI stays available for everything else.
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch
