@@ -116,6 +116,7 @@ def main() -> None:
         man = json.loads((rel / "training-manifest.json").read_text())
         kinds = man["split"]["setup_samples"]["all_by_kind"]
         assert {"scanner_scheduled", "scanner_targeted", "shadow", "own_trade"} <= set(kinds), kinds
+        assert any(k.startswith("method_") for k in kinds), kinds  # methodology setups were generated
         assert man["split"]["horizon_samples"]["train_public"] > 0
         assert set(man["split"]["horizon_samples"]["train_by_timeframe"]) >= {"15min", "1h", "1day"}
         assert "test_by_timeframe" in metrics["horizon"]

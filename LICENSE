@@ -1,24 +1,53 @@
-Proprietary License
+NICS AI Ecosystem -- Proprietary Commercial License
 
 Copyright (c) 2011-2026 AI Byte Consult Ltd. All rights reserved.
+Licensor: AI Byte Consult Ltd, Bulgaria (https://aibyteconsult.com)
+Contact:  info@aibyteconsult.com
 
-This repository and all of its contents -- including but not limited to
-source code, model architectures, configuration, training pipelines,
-documentation and associated assets (collectively, the "Software") -- are
-the proprietary and confidential property of AI Byte Consult Ltd
-("the Company").
+1. Ownership
+   This repository and everything in it -- source code, model
+   architectures (including NICS Language, NICS Vision and NICS Trading),
+   training pipelines, trading methodologies, configuration, documentation
+   and associated assets (the "Software") -- and every model weight,
+   checkpoint, dataset snapshot and output produced with it, are the
+   proprietary and confidential property of AI Byte Consult Ltd
+   (the "Company"). The Software is NOT open-source software. No
+   open-source license (MIT, Apache, GPL, Creative Commons or otherwise)
+   applies to it, even though the source code may be publicly visible.
 
-This is NOT open-source software, and no open-source license (MIT, Apache,
-GPL, or otherwise) applies to it.
+2. No free use
+   Free use of the Software is prohibited. Visibility of the source code
+   on GitHub or anywhere else grants no rights of any kind. Without a
+   signed, paid commercial license agreement with the Company, no person
+   or organisation may use, run, copy, modify, merge, train, fine-tune,
+   publish, distribute, sublicense, host, deploy, offer as a service,
+   reverse-engineer, benchmark for publication, or sell the Software or
+   any part of it, for any purpose, commercial or non-commercial.
 
-Model weights, checkpoints and datasets are NOT stored in this repository
-and are governed separately (see docs/model-ownership.md and
-docs/dataset-register.md).
+3. Commercial license only
+   The Software is available exclusively under a written commercial
+   license agreement signed by AI Byte Consult Ltd, which states the
+   permitted use, scope, term and fees. Any use outside the terms of such
+   an agreement is unlicensed use.
 
-No permission is granted to any person to use, copy, modify, merge,
-publish, distribute, sublicense, host, deploy, reverse-engineer, or sell
-copies of the Software, in whole or in part, for any purpose, without
-prior written authorization from AI Byte Consult Ltd.
+4. Models, weights and data
+   Model weights, checkpoints and datasets are not stored in this
+   repository and are governed separately (docs/model-ownership.md,
+   docs/dataset-register.md). They may not be used, copied or
+   redistributed without written authorization of the Company. Using the
+   Software or its outputs to train, distil or improve any other model is
+   prohibited.
 
-For licensing, partnership, or authorized-use inquiries, contact:
+5. No warranty, no financial advice
+   The Software is provided "as is", without warranty of any kind.
+   Nothing produced by the Software is investment advice, a forecast or a
+   guarantee of future results. Trading involves risk of loss.
+
+6. Enforcement
+   Unlicensed use infringes the Company's copyright and trade secrets and
+   may result in civil and criminal liability under Bulgarian, EU and
+   international law. The Company may terminate any license immediately
+   if its terms are breached.
+
+For commercial licensing, partnership or authorized-use inquiries:
 info@aibyteconsult.com

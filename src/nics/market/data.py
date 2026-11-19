@@ -33,7 +33,10 @@ from pathlib import Path
 
 import numpy as np
 
+from nics.market.indicators import INDICATOR_FEATURES, PATTERN_FEATURES, indicator_block
+
 ATR_PERIOD = 14
+WARMUP = 60  # bars before every indicator is ready (EMA50, ADX, ATR)
 INTERVALS = ["1min", "5min", "15min", "1h", "4h", "1day", "1week"]
 INTERVAL_SECONDS = {"1min": 60, "5min": 300, "15min": 900, "1h": 3600, "4h": 14400,
                     "1day": 86400, "1week": 7 * 86400}
@@ -47,8 +50,12 @@ BASE_FEATURES = [
     "vol_z",          # volume z-score over the window
     "hour_sin", "hour_cos", "dow_sin", "dow_cos",
 ]
-BAR_FEATURES = BASE_FEATURES + [f"tf_{i}" for i in INTERVALS] + ["is_public"]
-SETUP_KINDS = ["scanner_scheduled", "scanner_targeted", "scanner_scalper", "shadow", "ea_manual", "own_trade"]
+BAR_FEATURES = (BASE_FEATURES + INDICATOR_FEATURES + PATTERN_FEATURES
+                + [f"tf_{i}" for i in INTERVALS] + ["is_public"])
+METHOD_KINDS = ["method_range_both_sides", "method_breakout20", "method_ema_pullback", "method_level_bounce"]
+SETUP_KINDS = (["scanner_scheduled", "scanner_targeted", "scanner_scalper", "shadow", "ea_manual", "own_trade"]
+               + METHOD_KINDS)
+STRATEGIES = ["NICS-CASCADE-2026-08-v2", "NICS-INTRADAY-2026-08-v1", "NICS-SCALPER-BETA-v0.1"]
 SIGNAL_FEATURES = [
     "direction",      # +1 long, -1 short
     "entry_dist_atr", # (entry - close at setup time) / ATR, signed by direction
@@ -56,7 +63,14 @@ SIGNAL_FEATURES = [
     "tp1_dist_atr",   # |TP1 - entry| / ATR
     "reward_risk",    # tp1_dist / sl_dist
     "spread_atr",     # (ask - bid) / ATR at setup time
-] + [f"kind_{k}" for k in SETUP_KINDS]
+    "day_range_used", # today's range so far / average daily range (ATR "room left" rule)
+    "rr_tp2",         # reward/risk to TP2 and TP3 where the setup has them, else 0
+    "rr_tp3",
+    "scanner_confidence",   # confidence_score / 100 (scanner setups, else 0)
+    "scanner_opportunity",  # opportunity score / 100
+    "scanner_technical",    # technical score / 10
+    "has_scanner_scores",
+] + [f"kind_{k}" for k in SETUP_KINDS] + [f"strategy_{v}" for v in STRATEGIES] + ["strategy_other"]
 
 # Broker / prop symbol spellings -> our symbol names (for MT5 terminal trades).
 SYMBOL_ALIASES = {
@@ -193,7 +207,9 @@ def bar_features(s: Series) -> tuple[np.ndarray, np.ndarray]:
     onehot = np.zeros((len(s.c), len(INTERVALS) + 1))
     onehot[:, INTERVALS.index(s.interval)] = 1.0
     onehot[:, -1] = 1.0 if s.public else 0.0
-    f = np.concatenate([base, onehot], axis=1).astype(np.float32)
+    ind = indicator_block(s.o, s.h, s.l, s.c, a)
+    ind[WARMUP - 1:] = np.nan_to_num(ind[WARMUP - 1:], nan=0.0)
+    f = np.concatenate([base, ind, onehot], axis=1).astype(np.float32)
     s.feats, s.atr = f, a
     return f, a
 
@@ -250,7 +266,7 @@ def load_setups(snapshot: Path, known_symbols: set[str]) -> tuple[list[dict], di
     def skip(reason):
         skipped[reason] = skipped.get(reason, 0) + 1
 
-    def add(sid, kind, sym, direction, t, entry, sl, tp1):
+    def add(sid, kind, sym, direction, t, entry, sl, tp1, **extra):
         if sym is None or sym not in known_symbols:
             return skip(f"{kind}:no_candles")
         if None in (t, entry, sl, tp1) or entry <= 0:
@@ -259,7 +275,7 @@ def load_setups(snapshot: Path, known_symbols: set[str]) -> tuple[list[dict], di
         if (d > 0 and not (sl < entry < tp1)) or (d < 0 and not (tp1 < entry < sl)):
             return skip(f"{kind}:bad_levels")
         out.append({"id": sid, "kind": kind, "symbol": sym, "direction": d, "t": t,
-                    "entry": entry, "sl": sl, "tp1": tp1})
+                    "entry": entry, "sl": sl, "tp1": tp1, **extra})
 
     for r in load_signals(snapshot):
         mode = (r.get("origin_mode") or "SCHEDULED").upper()
@@ -267,7 +283,9 @@ def load_setups(snapshot: Path, known_symbols: set[str]) -> tuple[list[dict], di
         lo, hi = _f(r.get("entry_low")), _f(r.get("entry_high"))
         entry = (lo + hi) / 2 if lo is not None and hi is not None else None
         add(r.get("id"), kind, r.get("symbol"), r.get("direction"), _ts(r["created_at"]) if r.get("created_at") else None,
-            entry, _f(r.get("stop_loss")), _f(r.get("tp1")))
+            entry, _f(r.get("stop_loss")), _f(r.get("tp1")), tp2=_f(r.get("tp2")), tp3=_f(r.get("tp3")),
+            confidence=_f(r.get("confidence_score")), opportunity=_f(r.get("opportunity_score")),
+            technical=_f(r.get("technical_score")), strategy=r.get("strategy_version") or "")
     for r in _read(snapshot / "swing_shadow.csv"):
         if (r.get("status") or "").upper() == "SKIPPED" or not r.get("entry_time"):
             skip("shadow:not_entered")
@@ -275,9 +293,12 @@ def load_setups(snapshot: Path, known_symbols: set[str]) -> tuple[list[dict], di
         add(f"shadow-{r['id']}", "shadow", r.get("symbol"), r.get("direction"), _ts(r["entry_time"]),
             _f(r.get("entry_price")), _f(r.get("stop_loss")), _f(r.get("take_profit")))
     for r in _read(snapshot / "manual_algo.csv"):
+        if not _f(r.get("ea_fill_price")):  # only signals the EA actually filled are trades
+            skip("ea_manual:not_filled")
+            continue
         add(f"ea-{r['id']}", "ea_manual", r.get("symbol"), r.get("direction"),
             _ts(r["created_at"]) if r.get("created_at") else None,
-            _f(r.get("ea_fill_price")) or _f(r.get("entry_price")), _f(r.get("stop_loss")), _f(r.get("take_profit")))
+            _f(r.get("ea_fill_price")), _f(r.get("stop_loss")), _f(r.get("take_profit")))
     for path in sorted(snapshot.glob("own_trades_*.csv")):
         for r in _read(path):
             add(f"own-{r.get('label')}-{r.get('position_id')}", "own_trade",
@@ -321,3 +342,23 @@ def time_split(start_times: np.ndarray, label_end_times: np.ndarray, fractions=(
     """Boundaries from quantiles of start_times, then apply_split. Returns (train, val, test, (q1, q2))."""
     q1, q2 = split_bounds(start_times, fractions)
     return (*apply_split(start_times, label_end_times, q1, q2), (q1, q2))
+
+
+def day_range_used(s: Series, days: int = 14) -> np.ndarray:
+    """Per bar: today's (UTC day) high-low range up to and including this bar, divided by
+    the average full-day range of the previous `days` days. Our ATR "room left" rule:
+    late entries after ~75-80 % of the daily range has been travelled tend to fail."""
+    out = np.zeros(len(s.c))
+    day = (s.t // 86400).astype(np.int64)
+    ranges: list[float] = []
+    cur, hi, lo = None, -np.inf, np.inf
+    for i in range(len(s.c)):
+        if day[i] != cur:
+            if cur is not None:
+                ranges.append(hi - lo)
+            cur, hi, lo = day[i], -np.inf, np.inf
+        hi, lo = max(hi, s.h[i]), min(lo, s.l[i])
+        past = ranges[-days:]
+        avg = sum(past) / len(past) if past else 0.0
+        out[i] = min((hi - lo) / avg, 5.0) if avg > 0 else 0.0
+    return out

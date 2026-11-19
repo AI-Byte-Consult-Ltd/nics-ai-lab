@@ -24,6 +24,18 @@ data:
   signal_max_bars: 192   # a setup still open after 48 h has no outcome yet
   split: [0.7, 0.15]     # train / val by time (boundaries from our broker data), rest = test
 
+methods:                 # trading methodologies run on history -> extra labelled setups
+  enabled: true          # src/nics/market/methods.py (range both sides, breakout, EMA pullback, level bounce)
+  intervals: [1h, 4h]
+  cooldown_bars: 6       # at most one setup per method and direction every 6 bars
+
+self_learning:           # scripts/self_learn.py (nightly cycle on the laptop)
+  finetune_steps: 1500   # warm-start from the champion with this many steps
+  lr_scale: 0.5          # half the learning rate when fine-tuning
+  scratch_every_days: 7  # also train a fresh model from random weights once a week
+  min_improvement: 0.002 # challenger must beat the champion's validation score by at least this (test is report-only)
+  keep_snapshots: 3      # older data/market/<date>/ folders are deleted
+
 training:
   batch_size: 64
   max_steps: 3000

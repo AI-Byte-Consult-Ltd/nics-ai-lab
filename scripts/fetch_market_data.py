@@ -104,12 +104,14 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--intervals", default="all", help="comma list, e.g. 15min,1h,4h (default: all)")
     ap.add_argument("--days", type=int, default=3650, help="history depth (default: everything, up to 10 years)")
+    ap.add_argument("--out", default=None, help="output directory (default data/market/<UTC date>)")
+    ap.add_argument("--tables", default="all", help="comma list of extra tables (default all), or 'none'")
     args = ap.parse_args()
     url, key = os.environ.get("NICS_DATA_URL"), os.environ.get("NICS_DATA_KEY")
     if not url or not key:
         sys.exit("Set NICS_DATA_URL and NICS_DATA_KEY first (see the docstring).")
 
-    out = ROOT / "data" / "market" / datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    out = Path(args.out) if args.out else ROOT / "data" / "market" / datetime.now(timezone.utc).strftime("%Y-%m-%d")
     out.mkdir(parents=True, exist_ok=True)
     listing = fetch(url, key, {"mode": "symbols", "days": args.days})
     pairs = [(r["symbol"], r["interval"]) for r in listing.get("rows") or []]
@@ -138,7 +140,9 @@ def main() -> None:
             counts["candles"][f"{sym}|{iv}"] = n
             print(f"{sym:10s} {iv:6s} {n:8d} candles")
 
-    for mode, (name, cols) in TABLES.items():
+    tables = TABLES if args.tables == "all" else {
+        m: v for m, v in TABLES.items() if m in {t.strip() for t in args.tables.split(",")}}
+    for mode, (name, cols) in tables.items():
         rows = fetch(url, key, {"mode": mode, "days": args.days}).get("rows") or []
         with open(out / name, "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
@@ -148,7 +152,7 @@ def main() -> None:
         counts[mode] = len(rows)
         print(f"{mode:16s} {len(rows):8d} rows")
 
-    files = ["candles.csv"] + [n for n, _ in TABLES.values()]
+    files = ["candles.csv"] + [n for n, _ in tables.values()]
     manifest = {
         "dataset_id": "nics-market-v2",
         "source": "own systems: Vantage MT5 bridge candles, NICS scanner signals + lifecycle events, "

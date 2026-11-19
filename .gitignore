@@ -19,3 +19,6 @@ __pycache__/
 *.pyc
 .env
 .env.*
+
+# NICS Trading: self-learning runs, champion, shadow predictions stay on the laptop
+experiments/trading/
