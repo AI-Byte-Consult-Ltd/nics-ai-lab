@@ -38,6 +38,38 @@ sys.path.insert(0, str(ROOT / "src"))
 from nics.common.config import load_config  # noqa: E402
 
 
+def pid_alive(pid: int) -> bool:
+    """True if a process with this PID is still running (a lock left by a laptop that was
+    switched off mid-cycle points to a dead PID and is ignored)."""
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        import ctypes
+        k = ctypes.windll.kernel32
+        h = k.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return False
+        code = ctypes.c_ulong()
+        ok = k.GetExitCodeProcess(h, ctypes.byref(code))
+        k.CloseHandle(h)
+        return bool(ok) and code.value == 259  # STILL_ACTIVE
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def lock_is_live(lock: Path) -> bool:
+    if not lock.exists() or time.time() - lock.stat().st_mtime > 12 * 3600:
+        return False
+    parts = lock.read_text(encoding="utf-8", errors="ignore").split()
+    pid = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else -1
+    return pid_alive(pid) if pid > 0 else True
+
+
 def run(cmd: list[str], log) -> str:
     log(f"$ {' '.join(cmd)}")
     p = subprocess.run(cmd, capture_output=True, text=True, env=os.environ, cwd=ROOT)
@@ -62,9 +94,9 @@ def main() -> None:
     champ_dir, champ_json = base / "champion", base / "champion.json"
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     lock = base / "self_learn.lock"
-    if lock.exists() and time.time() - lock.stat().st_mtime < 12 * 3600:
+    if lock_is_live(lock):
         sys.exit(f"Another cycle is running ({lock}). Delete the file if it is stale.")
-    lock.write_text(stamp)
+    lock.write_text(f"{stamp} {os.getpid()}")
     logf = open(base / "self_learn.log", "a", encoding="utf-8")
 
     def log(msg):
