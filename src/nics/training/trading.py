@@ -66,7 +66,9 @@ def setup_features(st: dict, s, i: int, room: np.ndarray) -> list[float]:
             + [1.0 if strat and strat not in market.STRATEGIES else 0.0])
 
 
-def build_samples(cfg, snapshot: Path, use_public: bool, label_setups: bool = True):
+def build_samples(cfg, snapshot: Path, use_public: bool, label_setups: bool = True, mirror_scanner: bool = False):
+    """mirror_scanner=True adds, for every scanner signal, the same idea in the opposite
+    direction (id "<id>|mirror"): used only by the direction shadow test, never in training."""
     d = cfg.data
     ivcfg = dict(d.intervals)
     series = market.load_series(snapshot, use_public=use_public, intervals=list(ivcfg))
@@ -107,6 +109,8 @@ def build_samples(cfg, snapshot: Path, use_public: bool, label_setups: bool = Tr
                                      int(mcfg.get("cooldown_bars", 6)), public=bool(mcfg.get("on_public", True)))
         # broker-timeframe setups are labelled on broker candles; public-history setups on their own series
         setups += [st for st in gen if st["symbol"] in broker or series[st["series"]].public]
+    if mirror_scanner:
+        setups += [market.mirror_setup(st) for st in setups if st["kind"].startswith("scanner")]
     tracker = market.recorded_tp1(snapshot)
     S = {k: [] for k in ("sid", "end", "f", "y", "t0", "t1", "rr", "cost", "kind", "id", "public")}
     max_hours = d.signal_max_bars * market.INTERVAL_SECONDS[sig_iv] / 3600

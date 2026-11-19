@@ -1,5 +1,12 @@
 """Shadow scoring: the champion model scores NEW scanner signals as they appear.
 
+Two shadow files:
+  predictions.csv  P(TP1 before SL) for the signal as the scanner gave it;
+  direction.csv    the model's OWN direction for the same signal: it scores the signal
+                   and its mirror (opposite direction, same entry, same stop/take
+                   distances) and picks the side with the higher probability.
+                   scripts/direction_report.py compares it with the scanner every day.
+
 Nothing is sent to users, the bot or any account. Each score is appended to
 experiments/trading/<model_id>/shadow/predictions.csv with the time it was made,
 so the self-learning cycle can later check it against the real outcome
@@ -25,8 +32,43 @@ sys.path.insert(0, str(ROOT / "src"))
 from nics.common.config import Config, load_config  # noqa: E402
 from nics.training import trading as T  # noqa: E402
 
+DIR_COLS = ["signal_id", "symbol", "kind", "created_at", "scanner_direction", "model_direction",
+            "p_scanner_side", "p_other_side", "experiment_id", "scored_at"]
 COLS = ["signal_id", "symbol", "kind", "direction", "created_at", "p_tp1", "take", "threshold",
         "experiment_id", "scored_at"]
+
+
+def score_directions(model, man, win, series, S, path: Path, hours: float, now: datetime) -> None:
+    """The model's own direction for every new scanner signal (shadow only, sent nowhere)."""
+    done = set()
+    if path.exists():
+        with open(path, newline="", encoding="utf-8") as f:
+            done = {r["signal_id"] for r in csv.DictReader(f)}
+    ids = [str(x) for x in S["id"]]
+    pos = {sid: j for j, sid in enumerate(ids)}
+    pairs = [(j, pos[sid + "|mirror"]) for j, (sid, k, t) in enumerate(zip(ids, S["kind"], S["t0"]))
+             if k.startswith("scanner") and not sid.endswith("|mirror") and sid not in done
+             and sid + "|mirror" in pos and now.timestamp() - t <= hours * 3600]
+    if not pairs:
+        return
+    mask = np.zeros(len(ids), bool)
+    for a, b in pairs:
+        mask[a] = mask[b] = True
+    p = dict(zip(np.flatnonzero(mask), T.predict_signal(model, win, S, mask)))
+    new = not path.exists()
+    with open(path, "a", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=DIR_COLS)
+        if new:
+            w.writeheader()
+        for a, b in pairs:
+            d = "LONG" if S["f"][a][0] > 0 else "SHORT"
+            other = "SHORT" if d == "LONG" else "LONG"
+            w.writerow({"signal_id": ids[a], "symbol": series[int(S["sid"][a])].symbol, "kind": S["kind"][a],
+                        "created_at": T.iso(S["t0"][a]), "scanner_direction": d,
+                        "model_direction": d if p[a] >= p[b] else other,
+                        "p_scanner_side": round(float(p[a]), 4), "p_other_side": round(float(p[b]), 4),
+                        "experiment_id": man.get("experiment_id"), "scored_at": now.isoformat()})
+    print(f"Direction shadow: {len(pairs)} signals -> {path}")
 
 
 def main() -> None:
@@ -52,7 +94,7 @@ def main() -> None:
     lcfg = Config(copy.deepcopy(dict(cfg)))
     lcfg["data"]["intervals"] = {sig_iv: dict(cfg.data.intervals)[sig_iv]}
     lcfg["methods"] = {"enabled": False}
-    series, H, S, _ = T.build_samples(lcfg, live, use_public=False, label_setups=False)
+    series, H, S, _ = T.build_samples(lcfg, live, use_public=False, label_setups=False, mirror_scanner=True)
     win = T.Windows(series, cfg.data.window)
 
     out_dir = base / "shadow"
@@ -63,7 +105,8 @@ def main() -> None:
         with open(pred_path, newline="", encoding="utf-8") as f:
             done = {r["signal_id"] for r in csv.DictReader(f)}
     now = datetime.now(timezone.utc)
-    recent = np.array([(k.startswith("scanner") and sid not in done and now.timestamp() - t <= args.hours * 3600)
+    score_directions(model, man, win, series, S, base / "shadow" / "direction.csv", args.hours, now)
+    recent = np.array([(k.startswith("scanner") and not str(sid).endswith("|mirror") and sid not in done and now.timestamp() - t <= args.hours * 3600)
                        for k, sid, t in zip(S["kind"], S["id"], S["t0"])], dtype=bool)
     if not recent.any():
         print("No new signals to score.")

@@ -152,6 +152,13 @@ def main() -> None:
                 log(f"champion cannot be evaluated on current code, it will be replaced: {e}")
         log(f"champion: {champion and champion.get('experiment_id')} score on new data: {champ_score}")
 
+        # 2b. shadow direction test: scanner direction vs the model's own direction, per day
+        try:
+            out = run([py, "scripts/direction_report.py", "--config", args.config, "--snapshot", str(snap)], log)
+            report["direction_shadow"] = json.loads(out.strip().splitlines()[-1])
+        except (RuntimeError, ValueError, IndexError) as e:
+            log(f"direction report skipped: {e}")
+
         # 3. challengers
         last_scratch = champion.get("last_scratch_at") if champion else None
         need_scratch = (args.from_scratch or champ_score is None or not last_scratch or
