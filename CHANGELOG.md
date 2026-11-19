@@ -22,6 +22,8 @@ no silent, unversioned changes.
   on again (StartWhenAvailable), both tasks wait for a network connection and
   run on battery, no overlapping runs. The laptop does not have to stay on.
 - Laptop guide section 5 rewritten accordingly.
+- `self_learn.py` lock stores the PID: a lock left by a laptop switched off
+  mid-cycle is ignored on the next run instead of blocking it for 12 hours.
 
 ## [0.5.1] - 2026-11-19
 
