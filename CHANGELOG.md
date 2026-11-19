@@ -14,6 +14,25 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.7.0] - 2026-11-19
+
+### Added
+- **Direction shadow test** (Alexander's request). Every hour `score_live.py`
+  asks the champion which direction it would take for each new scanner signal:
+  it scores the signal and its mirror (opposite direction, same entry, same
+  stop/take distances, same reward:risk) and keeps the side with the higher
+  P(TP1 before SL) in `shadow/direction.csv`. Nothing is sent anywhere; the live
+  signals and the EA are untouched.
+- `scripts/direction_report.py`, run by the nightly cycle: per Sofia day, scanner
+  vs model in R per signal, R total and $ at a fixed risk per signal (100 $),
+  agreements, who won where they disagreed, per plan group. Outputs
+  `shadow/direction_reports/<day>.json`, `shadow/direction_daily.csv`,
+  `shadow/direction_last.txt` (Russian summary); the last 3 days are recomputed
+  until every trade has an outcome. Summary also in `self_learn_last.json`.
+- `market.mirror_setup`, `build_samples(..., mirror_scanner=True)` (never used in
+  training); `tzdata` in requirements (Sofia days on Windows).
+- `tests/test_direction_shadow.py`.
+
 ## [0.6.0] - 2026-11-19
 
 ### Added

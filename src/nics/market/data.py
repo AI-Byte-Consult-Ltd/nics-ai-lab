@@ -285,7 +285,8 @@ def load_setups(snapshot: Path, known_symbols: set[str]) -> tuple[list[dict], di
         add(r.get("id"), kind, r.get("symbol"), r.get("direction"), _ts(r["created_at"]) if r.get("created_at") else None,
             entry, _f(r.get("stop_loss")), _f(r.get("tp1")), tp2=_f(r.get("tp2")), tp3=_f(r.get("tp3")),
             confidence=_f(r.get("confidence_score")), opportunity=_f(r.get("opportunity_score")),
-            technical=_f(r.get("technical_score")), strategy=r.get("strategy_version") or "")
+            technical=_f(r.get("technical_score")), strategy=r.get("strategy_version") or "",
+            group=(r.get("plan_group") or "").upper())
     for r in _read(snapshot / "swing_shadow.csv"):
         if (r.get("status") or "").upper() == "SKIPPED" or not r.get("entry_time"):
             skip("shadow:not_entered")
@@ -342,6 +343,17 @@ def time_split(start_times: np.ndarray, label_end_times: np.ndarray, fractions=(
     """Boundaries from quantiles of start_times, then apply_split. Returns (train, val, test, (q1, q2))."""
     q1, q2 = split_bounds(start_times, fractions)
     return (*apply_split(start_times, label_end_times, q1, q2), (q1, q2))
+
+
+def mirror_setup(st: dict) -> dict:
+    """The same idea in the OPPOSITE direction: same entry, same stop and take distances
+    (so the same reward:risk). Used to ask the model which direction it would take."""
+    e = st["entry"]
+    m = dict(st)
+    m.update(id=f"{st['id']}|mirror", direction=-st["direction"], sl=2 * e - st["sl"], tp1=2 * e - st["tp1"],
+             tp2=2 * e - st["tp2"] if st.get("tp2") else st.get("tp2"),
+             tp3=2 * e - st["tp3"] if st.get("tp3") else st.get("tp3"), mirror=True)
+    return m
 
 
 def day_range_used(s: Series, days: int = 14) -> np.ndarray:

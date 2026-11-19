@@ -4,3 +4,4 @@ tqdm
 safetensors
 tokenizers
 pillow
+tzdata
