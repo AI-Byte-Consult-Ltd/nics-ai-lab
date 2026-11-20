@@ -1,6 +1,6 @@
 # NICS AI Lab
 
-**Version 0.7.1** -- see [`CHANGELOG.md`](CHANGELOG.md) for release history.
+**Version 0.7.2** -- see [`CHANGELOG.md`](CHANGELOG.md) for release history.
 Every merged change bumps this version; there are no unversioned changes.
 
 Independent model training infrastructure for **AI Byte Consult Ltd** / the

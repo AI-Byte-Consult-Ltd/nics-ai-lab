@@ -14,6 +14,14 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.7.2] - 2026-11-20
+
+### Fixed
+- Night of 19-20.11 the laptop was on but asleep, so neither the 03:30 cycle nor the hourly
+  shadow scoring ran until it woke at ~08:00. Both scheduled tasks now have `WakeToRun`
+  (`scripts/windows/install_tasks.ps1`). Takes effect after `install_tasks.bat` is run once
+  more. Windows must allow wake timers (Power options -> Sleep -> Allow wake timers).
+
 ## [0.7.1] - 2026-11-20
 
 ### Added
