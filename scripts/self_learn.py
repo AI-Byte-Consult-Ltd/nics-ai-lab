@@ -229,6 +229,17 @@ def main() -> None:
         (base / "self_learn_last.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
         with open(base / "self_learn_history.jsonl", "a", encoding="utf-8") as f:
             f.write(json.dumps(report) + "\n")
+        # 6. send the short report to Alexander's private dashboard (metrics only, never fails the cycle)
+        if os.environ.get("NICS_DASHBOARD_PUSH", "1") != "0":
+            try:
+                from nics.telemetry.push import push
+                push("nics-trading", "self_learn", report, cycle=stamp, log=log)
+                dpath = base / "shadow" / "direction_last.txt"
+                if dpath.exists():
+                    push("nics-trading", "direction", report.get("direction_shadow") or {},
+                         text=dpath.read_text(encoding="utf-8", errors="replace"), cycle=stamp, log=log)
+            except Exception as e:  # noqa: BLE001 - the dashboard must never break training
+                log(f"dashboard push skipped: {e}")
         lock.unlink(missing_ok=True)
         logf.close()
     print(json.dumps(report, indent=2))
