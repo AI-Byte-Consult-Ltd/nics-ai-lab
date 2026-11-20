@@ -14,6 +14,18 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.7.1] - 2026-11-20
+
+### Added
+- **Push to the private dashboard.** After every nightly cycle `scripts/self_learn.py`
+  POSTs the cycle report (same content as `self_learn_last.json`) and
+  `shadow/direction_last.txt` to the n8n webhook `nics-lab-metrics`
+  (`src/nics/telemetry/push.py`). It reuses `NICS_DATA_KEY` (header `X-NICS-Lab-Key`)
+  and derives the URL from `NICS_DATA_URL`; `NICS_METRICS_URL` overrides it,
+  `NICS_DASHBOARD_PUSH=0` turns it off. Metrics only: no weights, data or keys leave
+  the laptop. A failed push is logged and never fails the cycle.
+  Tests: `tests/test_dashboard_push.py`.
+
 ## [0.7.0] - 2026-11-19
 
 ### Added
