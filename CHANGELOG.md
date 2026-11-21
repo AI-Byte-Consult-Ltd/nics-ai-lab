@@ -14,6 +14,19 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.9.3] - 2026-11-21
+
+### Added
+- `scripts/db_backup.py`: full backup of the NICS Trading production database to the
+  laptop through the read-only n8n workflow "[00 OPS] Database Backup Export"
+  (schema + every table as primary-key-ordered gzip JSONL, manifest with row counts,
+  `.partial` until complete, keeps the last 14). Secret values of `app_secrets` are
+  replaced by `__REDACTED__` on the server.
+- `scripts/db_restore.py`: turns a backup folder into one SQL file for `psql`
+  (schema -> data -> foreign keys/triggers -> sequences).
+- Scheduled task "NICS DB backup" every night at 04:15 (`install_tasks.bat`).
+- `tests/test_db_backup.py`: offline test against a fake server.
+
 ## [0.9.2] - 2026-11-21
 
 ### Added
