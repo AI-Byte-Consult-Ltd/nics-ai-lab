@@ -51,9 +51,22 @@ overconfident in it.
 |---|---|---|---|---|---|---|---|
 | 1 | rule_strong_trend_pullback | pullback in a strong ADX trend | 1h/4h. ADX(14) > 30, EMA20 sloping over 5 bars, bar touches EMA20 without closing more than 0.25 ATR through it. **Buy stop** 0.05 ATR above that bar's high, valid 3 bars (mirror for shorts). Stop 0.4 ATR beyond the last 3 bars' extreme. Target is the 20-bar high (low) before the signal, at least 1 R. A bar touching both stop and target counts as a loss. | 2026-11-21 | shadow | 2026-12-05 to 12-19 | — |
 | 2 | rule_level_squeeze_breakout | level methodology: squeeze into a level and break it | 1h/4h. Level = at least 2 swing highs (lows) within 0.2 ATR in the last 200 bars. The last 3 bars all reach within 0.3 ATR of the level without closing through it, average range < 0.8 ATR, and lows rise under resistance (highs fall over support). **Buy stop** 0.1 ATR beyond the level (luft), valid 3 bars. Stop 0.1 ATR beyond the last 2 bars' extreme. Target 3 R. Only while less than 75 % of the average daily range is used (ATR reserve). | 2026-11-21 | shadow | 2026-12-05 to 12-19 | — |
-| 3 | (planned) | multi-timeframe screen | 4h trend, 1h oscillator pullback, stop entry | — | queued | — | — |
-| 4 | (planned) | level methodology: false breakout of a level or range edge | break beyond the level, close back inside, entry on return | — | queued | — | — |
-| 5 | (planned) | second entry in a trend | second pullback attempt (H2/L2) in a trend | — | queued | — | — |
+| 3 | queued_multi_timeframe_screen | multi-timeframe screen | 4h trend, 1h oscillator pullback, stop entry | — | queued | — | — |
+| 4 | queued_level_false_breakout | level methodology: false breakout | break beyond a level or range edge, close back inside, entry on return | — | queued | — | — |
+| 5 | queued_second_entry | second entry in a trend | second pullback attempt in a trend | — | queued | — | — |
+| 6 | queued_accumulation_phases | accumulation / distribution phases | false exit from a range, then a test of it | — | queued | — | — |
+| 7 | queued_trend_highs_lows | trend structure | sequence of highs and lows, trend change | — | queued | — | — |
+| 8 | queued_classic_patterns | classic chart patterns | double top/bottom, flag, triangle | — | queued | — | — |
+| 9 | queued_range_edges_price_action | price action at range edges | rejection, pin bar, engulfing at the edges | — | queued | — | — |
+| 10 | queued_pullback_quality | pullback quality | depth and speed of the pullback against the impulse | — | queued | — | — |
+| 11 | queued_adaptive_trend_system | adaptive trend system | adaptive moving average, noise filter | — | queued | — | — |
+| 12 | queued_volume_price | volume and price | move confirmed by volume, climax volume | — | queued | — | — |
+| 13 | queued_r_multiple_sizing | risk in R | position size from the stop, system judged in R | — | queued | — | — |
+
+Psychology and discipline books give no codable entry rules and are not used for rules.
+
+The machine-readable copy of this list is `src/nics/market/registry.py`. It is pushed
+to the CEO desk every night, and a test keeps it in sync with the code.
 
 Differences from what is already in training:
 - rule 1 needs a strong trend (ADX > 30, not only EMA20 > EMA50) and enters by
