@@ -14,6 +14,22 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.9.0] - 2026-11-21
+
+### Added
+- **Trading-book rules, measured in shadow before the model learns them.**
+  `src/nics/market/rules.py` holds candidate rules coded with our own parameters (no book
+  text copied). Every night `scripts/rules_shadow.py` measures each one by itself:
+  backtest on public history, our broker history before the day it was added, and forward
+  from that day. Stop entries must actually fill, and a bar touching both stop and target
+  counts as a loss. Results: `shadow/rules/<rule>.json`, `shadow/rules_last.txt`, and the
+  CEO desk (same block as the direction test). The model does not train on a candidate
+  until it is promoted after a 2-4 week forward review.
+- First candidate: `rule_strong_trend_pullback` (idea: Raschke & Connors ADX trend pullback).
+- `docs/rules_registry.md`: every rule given to the model, with source idea, exact
+  definition, date, status and result, so no rule is added twice.
+- `tests/test_rules_shadow.py` (offline).
+
 ## [0.8.0] - 2026-11-21
 
 ### Added
