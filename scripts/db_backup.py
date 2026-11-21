@@ -131,6 +131,34 @@ class Client:
         return json.loads(body.decode("utf-8"))
 
 
+def report(ok: bool, url: str, final: Path | None, error: str = "", log=print) -> bool:
+    """Tell the CEO desk how the run went (block «Бэкап»): time, rows, size, folder. No data, no keys.
+
+    Reuses the lab metrics webhook and NICS_DATA_KEY that the laptop already has. Never raises,
+    never fails the backup."""
+    summary = {"ok": ok, "finished_at": dt.datetime.now(dt.timezone.utc).isoformat(), "error": error[:500]}
+    if final is not None:
+        try:
+            m = json.loads((final / "manifest.json").read_text(encoding="utf-8"))
+            summary.update(folder=str(final), stamp=final.name, tables=len(m.get("tables") or {}),
+                           rows=m.get("total_rows"), bytes=m.get("total_file_bytes"),
+                           started_at=m.get("started_at"))
+        except (OSError, ValueError):
+            pass
+    try:
+        sys.path.insert(0, str(ROOT / "src"))
+        from nics.telemetry.push import push
+    except ImportError:
+        return False
+    env = dict(os.environ)
+    env.setdefault("NICS_DATA_KEY", windows_user_env("NICS_DATA_KEY") or "")
+    if not env.get("NICS_METRICS_URL") and not env.get("NICS_DATA_URL"):
+        p = urllib.parse.urlsplit(url)
+        env["NICS_METRICS_URL"] = urllib.parse.urlunsplit((p.scheme, p.netloc, "/webhook/nics-lab-metrics", "", ""))
+    text = (f"OK {summary.get('stamp')} rows={summary.get('rows')}" if ok else f"FAILED: {error[:300]}")
+    return push("nics-db", "db_backup", summary, text=text, cycle=summary.get("stamp") or "", log=log, env=env)
+
+
 def chunk_limit(table: dict, target_bytes: int) -> int:
     """Rows per request so that one response stays near target_bytes of raw data."""
     est, size = int(table.get("est_rows") or -1), int(table.get("bytes") or 0)
@@ -266,10 +294,14 @@ def main(argv=None) -> int:
         print(f"{dt.datetime.now():%Y-%m-%d %H:%M:%S} {msg}", flush=True)
 
     try:
-        run(Client(url, key), out_root, args.keep, int(args.chunk_mb * 1024 * 1024), args.tables, log)
+        final = run(Client(url, key), out_root, args.keep, int(args.chunk_mb * 1024 * 1024), args.tables, log)
     except RuntimeError as e:
         log(f"FAILED: {e}")
+        if not args.tables:
+            report(False, url, None, str(e), log)
         return 1
+    if not args.tables:  # test runs with --tables are not real backups
+        report(True, url, final, log=log)
     return 0
 
 

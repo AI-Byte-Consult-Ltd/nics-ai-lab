@@ -23,6 +23,12 @@ no silent, unversioned changes.
   and saves it the same way for the nightly task. The server address defaults to the NICS
   n8n, so `NICS_DATA_URL` / `NICS_BACKUP_URL` are optional.
 
+### Added
+- After every real run `db_backup.py` reports the result (finished time, rows, tables, size,
+  folder or the error) to the CEO desk through the existing lab metrics webhook
+  (`model=nics-db`, `kind=db_backup`, key `NICS_DATA_KEY`). The desk shows it in the new
+  block «Бэкап». No data and no keys are sent; a failed report never fails the backup.
+
 ## [0.9.3] - 2026-11-21
 
 ### Added

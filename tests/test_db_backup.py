@@ -35,9 +35,19 @@ TABLES = {
 }
 
 
+REPORTS = []
+
+
 class Fake(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
+
+    def do_POST(self):  # lab metrics webhook (CEO desk block «Бэкап»)
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        REPORTS.append((self.headers.get("X-NICS-Lab-Key"), body))
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"{}")
 
     def do_GET(self):
         if self.headers.get("X-NICS-Backup-Key") != KEY:
@@ -101,6 +111,15 @@ def main() -> None:
             assert len(got) == len(t["rows"]) == man["tables"][name]["rows"], name
             assert sorted(map(json.dumps, got)) == sorted(map(json.dumps, t["rows"])), name
         assert man["tables"]["candles"]["chunks"] > 3, "candles must have been paged"
+
+        import os
+        os.environ.update(NICS_DATA_KEY="lab" * 12, NICS_METRICS_URL=f"http://127.0.0.1:{srv.server_port}/webhook/nics-lab-metrics")
+        assert db_backup.report(True, url, final, log=lambda m: None)
+        lab_key, body = REPORTS[-1]
+        summ = json.loads(body["summary"])
+        assert lab_key == "lab" * 12 and body["model"] == "nics-db" and body["kind"] == "db_backup"
+        assert summ["ok"] and summ["rows"] == man["total_rows"] and summ["tables"] == len(TABLES)
+        assert KEY not in json.dumps(body), "backup key must never be reported"
 
         sql_path = out / "restore.sql"
         with open(sql_path, "w", encoding="utf-8") as f:
