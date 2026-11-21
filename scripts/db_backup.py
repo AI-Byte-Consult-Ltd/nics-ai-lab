@@ -174,7 +174,6 @@ def run(client: Client, out_root: Path, keep: int, target_bytes: int, only: list
     schema = client.json({"mode": "schema"})
     (work / "schema" / "pre_data.sql").write_text(schema.get("pre_data") or "", encoding="utf-8")
     (work / "schema" / "post_data.sql").write_text(schema.get("post_data") or "", encoding="utf-8")
-    (work / "schema" / "sequences.sql").write_text(schema.get("sequences_sql") or "", encoding="utf-8")
     (work / "schema" / "column_flags.json").write_text(
         json.dumps(schema.get("column_flags") or [], indent=1), encoding="utf-8")
 
@@ -187,6 +186,11 @@ def run(client: Client, out_root: Path, keep: int, target_bytes: int, only: list
         except Exception as e:  # keep going, report at the end
             errors[name] = str(e)[:500]
             log(f"{name}: ERROR {e}")
+
+    # sequence positions are read after the data, so they are never older than the rows
+    # (db_restore.py also lifts every sequence to max(column) of the restored data)
+    seq = client.json({"mode": "schema"})
+    (work / "schema" / "sequences.sql").write_text(seq.get("sequences_sql") or "", encoding="utf-8")
 
     manifest = {
         "kind": "nics_trading_db_backup", "format": 1,

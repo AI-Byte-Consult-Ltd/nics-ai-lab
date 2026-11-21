@@ -23,6 +23,31 @@ import sys
 from pathlib import Path
 
 
+# Rows written while the backup ran can be newer than the saved sequence position, so every
+# sequence that belongs to a column is moved to at least max(column) of the restored data.
+SEQUENCE_FIX = """
+DO $nics_seq$
+DECLARE r record; m bigint;
+BEGIN
+  FOR r IN
+    SELECT s.oid::regclass AS seq, t.oid::regclass AS tbl, a.attname
+    FROM pg_depend d
+    JOIN pg_class s ON s.oid = d.objid AND s.relkind = 'S'
+    JOIN pg_class t ON t.oid = d.refobjid
+    JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = d.refobjsubid
+    WHERE d.deptype IN ('a', 'i')
+  LOOP
+    EXECUTE format('SELECT max(%I)::bigint FROM %s', r.attname, r.tbl) INTO m;
+    IF m IS NOT NULL THEN
+      PERFORM setval(r.seq, greatest(m, (SELECT coalesce(ps.last_value, 1) FROM pg_sequences ps
+        WHERE (quote_ident(ps.schemaname) || '.' || quote_ident(ps.sequencename))::regclass = r.seq)));
+    END IF;
+  END LOOP;
+END
+$nics_seq$;
+"""
+
+
 def qi(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
 
@@ -80,6 +105,7 @@ def build(folder: Path, out, batch: int = 2000) -> dict:
     out.write("\n")
     out.write((folder / "schema" / "post_data.sql").read_text(encoding="utf-8") + "\n\n")
     out.write((folder / "schema" / "sequences.sql").read_text(encoding="utf-8") + "\n")
+    out.write(SEQUENCE_FIX)
     return counts
 
 
