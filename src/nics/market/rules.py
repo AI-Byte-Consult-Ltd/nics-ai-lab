@@ -17,12 +17,16 @@ from __future__ import annotations
 
 import numpy as np
 
+from nics.market.data import day_range_used
 from nics.market.indicators import adx, ema, rolling
 
+# Internal names only: no author, school or company names anywhere in code, data or outputs.
 CANDIDATES = {
-    # id: (function name, inspired by, added on, status)
-    "rule_strong_trend_pullback": ("strong_trend_pullback", "Raschke & Connors (ADX trend pullback)",
+    # id: (function name, idea in neutral words, added on, status)
+    "rule_strong_trend_pullback": ("strong_trend_pullback", "pullback in a strong ADX trend",
                                    "2026-11-21", "shadow"),
+    "rule_level_squeeze_breakout": ("level_squeeze_breakout", "level methodology: squeeze into a level, "
+                                    "breakout with luft, ATR reserve, 1:3", "2026-11-21", "shadow"),
 }
 
 
@@ -57,6 +61,64 @@ def strong_trend_pullback(s, x, start):
             out.append({"direction": -1, "bar": i, "entry": entry, "sl": sl, "tp1": tp})
     for st in out:
         st.update(kind="rule_strong_trend_pullback", symbol=s.symbol, valid_bars=3)
+    return out
+
+
+def _swings(s):
+    n = len(s.c)
+    lo, hi = np.zeros(n, bool), np.zeros(n, bool)
+    for j in range(2, n - 2):
+        lo[j] = s.l[j] < min(s.l[j - 2], s.l[j - 1], s.l[j + 1], s.l[j + 2])
+        hi[j] = s.h[j] > max(s.h[j - 2], s.h[j - 1], s.h[j + 1], s.h[j + 2])
+    return lo, hi
+
+
+def level_squeeze_breakout(s, x, start, lookback=200):
+    """Level methodology, breakout variant. A level = at least two swing highs (lows) within
+    0.2 ATR in the last 200 bars. Price squeezes into it: the last 3 bars all reach within
+    0.3 ATR of the level without closing through it, ranges are small (< 0.8 ATR on
+    average) and the opposite extremes press towards it (higher lows under resistance).
+    Buy stop 0.1 ATR beyond the level (luft), valid 3 bars; stop 0.1 ATR beyond the low of
+    the last 2 bars; target 3 R. Only while less than 75 % of the average daily range is
+    used up (ATR reserve). Mirror for supports."""
+    out, n, a = [], len(s.c), x["a"]
+    room = day_range_used(s)
+    sw_lo, sw_hi = _swings(s)
+    for i in range(max(start, 4), n - 1):
+        if not (a[i] > 0) or room[i] >= 0.75:
+            continue
+        ai = a[i]
+        rng = (s.h[i - 2:i + 1] - s.l[i - 2:i + 1]).mean()
+        if rng >= 0.8 * ai:
+            continue
+        j0, j1 = max(0, i - lookback), i - 2  # swings confirmed by bar i
+        highs, lows = s.h[j0:j1][sw_hi[j0:j1]], s.l[j0:j1][sw_lo[j0:j1]]
+        done = False
+        for lv in highs[-12:][::-1]:
+            if (abs(highs - lv) <= 0.2 * ai).sum() < 2:
+                continue
+            h3, c3 = s.h[i - 2:i + 1], s.c[i - 2:i + 1]
+            if (h3 >= lv - 0.3 * ai).all() and (c3 < lv).all() and (h3 <= lv + 0.1 * ai).all() \
+                    and s.l[i] > s.l[i - 2]:
+                entry = lv + 0.1 * ai
+                sl = s.l[i - 1:i + 1].min() - 0.1 * ai
+                out.append({"direction": 1, "bar": i, "entry": entry, "sl": sl, "tp1": entry + 3 * (entry - sl)})
+                done = True
+                break
+        if done:
+            continue
+        for lv in lows[-12:][::-1]:
+            if (abs(lows - lv) <= 0.2 * ai).sum() < 2:
+                continue
+            l3, c3 = s.l[i - 2:i + 1], s.c[i - 2:i + 1]
+            if (l3 <= lv + 0.3 * ai).all() and (c3 > lv).all() and (l3 >= lv - 0.1 * ai).all() \
+                    and s.h[i] < s.h[i - 2]:
+                entry = lv - 0.1 * ai
+                sl = s.h[i - 1:i + 1].max() + 0.1 * ai
+                out.append({"direction": -1, "bar": i, "entry": entry, "sl": sl, "tp1": entry - 3 * (sl - entry)})
+                break
+    for st in out:
+        st.update(kind="rule_level_squeeze_breakout", symbol=s.symbol, valid_bars=3)
     return out
 
 
