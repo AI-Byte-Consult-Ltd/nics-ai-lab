@@ -46,7 +46,8 @@ except Exception:  # Windows without the tzdata package: winter time
     SOFIA = timezone(timedelta(hours=2))
 
 DAILY_COLS = ["day", "signals", "resolved", "open", "agree", "disagree", "scanner_R", "model_R",
-              "scanner_usd", "model_usd", "disagree_scanner_R", "disagree_model_R", "risk_usd", "updated_at"]
+              "scanner_usd", "model_usd", "disagree_scanner_R", "disagree_model_R",
+              "ideas_scanner_R", "ideas_model_R", "risk_usd", "updated_at"]
 
 
 def outcomes(cfg, snap: Path) -> dict[str, float]:
@@ -60,6 +61,18 @@ def outcomes(cfg, snap: Path) -> dict[str, float]:
         return {}
     r = T.r_per_trade(S["y"].astype(np.int64), S["rr"].astype(float), S["cost"].astype(float))
     return {str(i): float(x) for i, x in zip(S["id"], r)}
+
+
+def unique_ideas(rows: list[dict]) -> list[dict]:
+    """The scanner writes the same idea again on every scan: keep the first record of each
+    symbol + scanner direction + hour."""
+    seen, out = set(), []
+    for r in sorted(rows, key=lambda r: r["created_at"]):
+        key = (r["symbol"], r["scanner_direction"], r["created_at"][:13])
+        if key not in seen:
+            seen.add(key)
+            out.append(r)
+    return out
 
 
 def summarise(rows: list[dict], res: dict[str, float], risk: float) -> dict:
@@ -100,7 +113,8 @@ def russian(day: str, s: dict, risk: float) -> str:
               "лучше сканер" if s["scanner_R"] > s["model_R"] else "результат одинаковый")
     return "\n".join([
         f"Направление: сканер против NICS Trading, {day} (тень, на торговлю не влияет)",
-        f"Сигналов: {s['signals']}, с итогом: {s['resolved']}, ещё открыты: {s['open']}",
+        f"Только сигналы, отправленные пользователям: {s['signals']}, с итогом: {s['resolved']}, "
+        f"ещё открыты: {s['open']}",
         f"Совпали по направлению: {s['agree']}, разошлись: {s['disagree']}",
         f"Сканер: {s['scanner_R']:+.2f} R ({s['scanner_R_per_signal']:+.2f} R на сигнал), "
         f"{s['scanner_usd']:+.0f} $ при риске {risk:.0f} $",
@@ -109,7 +123,8 @@ def russian(day: str, s: dict, risk: float) -> str:
         f"Где разошлись: сканер {s['disagree_scanner_R']:+.2f} R, модель {s['disagree_model_R']:+.2f} R "
         f"(сканер лучше {s['scanner_wins']}, модель лучше {s['model_wins']})",
         f"Итог дня: {better}. Это измерение на прошедших сделках, не прогноз.",
-    ])
+    ] + ([f"Все идеи сканера без повторов (включая неотправленные): {s['ideas']['resolved']} с итогом, "
+          f"сканер {s['ideas']['scanner_R']:+.2f} R, модель {s['ideas']['model_R']:+.2f} R"] if s.get("ideas") else []))
 
 
 def main() -> None:
@@ -128,7 +143,9 @@ def main() -> None:
         return
     with open(dpath, newline="", encoding="utf-8") as f:
         preds = list(csv.DictReader(f))
-    groups = {r["id"]: (r.get("plan_group") or "").upper() or "?" for r in market.load_signals(Path(args.snapshot))}
+    sig = {r["id"]: r for r in market.load_signals(Path(args.snapshot))}
+    asset = {k: (r.get("plan_group") or "").lower() or "?" for k, r in sig.items()}  # asset class, not strength
+    sent_ids = {k for k, r in sig.items() if (r.get("delivery_status") or "").upper() == "SENT"}
     res = outcomes(cfg, Path(args.snapshot))
 
     def day_of(r):
@@ -148,16 +165,24 @@ def main() -> None:
         rows = [r for r in preds if day_of(r) == day]
         if not rows:
             continue
-        total = summarise(rows, res, args.risk_usd)
-        by_group = {g: summarise([r for r in rows if groups.get(r["signal_id"], "?") == g], res, args.risk_usd)
-                    for g in sorted({groups.get(r["signal_id"], "?") for r in rows})}
+        sent = [r for r in rows if r["signal_id"] in sent_ids]  # what users actually received
+        total = summarise(sent, res, args.risk_usd)
+        ideas = summarise(unique_ideas(rows), res, args.risk_usd)
+        records = summarise(rows, res, args.risk_usd)
+        by_asset = {g: summarise([r for r in sent if asset.get(r["signal_id"], "?") == g], res, args.risk_usd)
+                    for g in sorted({asset.get(r["signal_id"], "?") for r in sent})}
         rep = {"day": day.isoformat(), "time_zone": "Europe/Sofia", "risk_usd_per_signal": args.risk_usd,
-               "note": "Shadow test, measured on past trades. Not a forecast. Weak signals: internal only.",
-               "total": total, "by_plan_group": by_group,
+               "note": "Shadow test, measured on past trades. Not a forecast. 'total' = signals actually "
+                       "sent to users. The scanner re-records the same idea every scan, so all records "
+                       "are also given deduplicated (symbol + direction + hour).",
+               "total": total, "all_unique_ideas": ideas, "all_records_raw": records,
+               "sent_by_asset_class": by_asset,
                "updated_at": datetime.now(timezone.utc).isoformat()}
+        total = dict(total, ideas=ideas)
         (rep_dir / f"{day.isoformat()}.json").write_text(json.dumps(rep, indent=2, ensure_ascii=False),
                                                          encoding="utf-8")
-        daily[day.isoformat()] = {"day": day.isoformat(), **{k: total[k] for k in DAILY_COLS[1:-2]},
+        daily[day.isoformat()] = {"day": day.isoformat(), **{k: total[k] for k in DAILY_COLS[1:-4]},
+                                  "ideas_scanner_R": ideas["scanner_R"], "ideas_model_R": ideas["model_R"],
                                   "risk_usd": args.risk_usd, "updated_at": rep["updated_at"]}
         last = (day.isoformat(), total)
     with open(daily_path, "w", newline="", encoding="utf-8") as f:

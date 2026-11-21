@@ -14,6 +14,28 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.8.0] - 2026-11-21
+
+### Added
+- **Model opinion on every signal sent to users, for Alexander only.** New
+  `scripts/opinion_live.py`, run every 2 minutes by the new scheduled task "NICS Trading
+  opinion" (`scripts/windows/opinion.bat`). It fetches the last day of scanner signals,
+  keeps those with `delivery_status` SENT from the last 3 hours that have no opinion yet,
+  downloads 6 days of 15-minute candles for those symbols only, scores each signal and
+  its mirror with the champion, and POSTs the result to the n8n webhook
+  `nics-lab-opinion` (same lab key), which sends it to Alexander in Telegram. Answered
+  signals are logged in `shadow/opinions_sent.csv`. Shadow only: nothing changes
+  signals, users, the bot or the EA.
+- `scripts/windows/hidden.vbs`: the 2-minute and hourly tasks run without a console window.
+- `tests/test_opinion.py` (offline).
+
+### Fixed
+- `scripts/direction_report.py` counted every scanner record (about 1000 a day, mostly
+  READY repeats of the same idea every 3 minutes), which inflated the totals. The headline
+  now counts only signals actually sent to users (`delivery_status` SENT); all records are
+  also reported deduplicated by symbol + direction + hour, and raw. `plan_group` is
+  reported as the asset class it is (forex, gold, stocks ...), not as signal strength.
+
 ## [0.7.2] - 2026-11-20
 
 ### Fixed
