@@ -14,6 +14,16 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.9.2] - 2026-11-21
+
+### Added
+- The model's opinion message now also gives its OWN plan. `scripts/opinion_live.py`
+  scores a grid of variants (both directions; entry as in the signal or at market; stop
+  0.75-2.5 ATR; take 1-3 R) and picks the one with the best expected R after spread.
+  The message shows entry, stop, take, its chance, the expected R, and the expected R of
+  the signal's own plan for comparison. Still shadow, still only to Alexander.
+  `shadow/opinions_sent.csv` gains the plan columns (an older log is rewritten in place).
+
 ## [0.9.1] - 2026-11-21
 
 ### Added
