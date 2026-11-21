@@ -159,6 +159,13 @@ def main() -> None:
         except (RuntimeError, ValueError, IndexError) as e:
             log(f"direction report skipped: {e}")
 
+        # 2c. candidate rules from trading books, measured in shadow (docs/rules_registry.md)
+        try:
+            out = run([py, "scripts/rules_shadow.py", "--config", args.config, "--snapshot", str(snap)], log)
+            report["rules_shadow"] = json.loads(out.strip().splitlines()[-1])
+        except (RuntimeError, ValueError, IndexError) as e:
+            log(f"rules shadow skipped: {e}")
+
         # 3. challengers
         last_scratch = champion.get("last_scratch_at") if champion else None
         need_scratch = (args.from_scratch or champ_score is None or not last_scratch or
@@ -234,10 +241,13 @@ def main() -> None:
             try:
                 from nics.telemetry.push import push
                 push("nics-trading", "self_learn", report, cycle=stamp, log=log)
-                dpath = base / "shadow" / "direction_last.txt"
-                if dpath.exists():
+                # direction summary + candidate-rules summary go in one text block on the desk
+                texts = [p.read_text(encoding="utf-8", errors="replace").strip()
+                         for p in (base / "shadow" / "direction_last.txt", base / "shadow" / "rules_last.txt")
+                         if p.exists()]
+                if texts:
                     push("nics-trading", "direction", report.get("direction_shadow") or {},
-                         text=dpath.read_text(encoding="utf-8", errors="replace"), cycle=stamp, log=log)
+                         text="\n\n".join(texts), cycle=stamp, log=log)
             except Exception as e:  # noqa: BLE001 - the dashboard must never break training
                 log(f"dashboard push skipped: {e}")
         lock.unlink(missing_ok=True)
