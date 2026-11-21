@@ -84,6 +84,7 @@ def main() -> None:
 
     assert db_backup.backup_url({"NICS_DATA_URL": "https://h/webhook/nics-lab-market-export"}) == \
         "https://h/webhook/nics-db-backup"
+    assert db_backup.backup_url({}) == db_backup.DEFAULT_URL
 
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp)

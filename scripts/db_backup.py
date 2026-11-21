@@ -23,9 +23,10 @@ Restore into an empty database:  python scripts/db_restore.py <backup folder>  (
 
 Setup (once, Windows laptop):
   n8n: open "[00 OPS] Database Backup Export", run "Create or Show Backup Key", copy the key.
-  setx NICS_BACKUP_KEY <key>       (never commit it, never paste it into chats)
-  The server address is taken from NICS_DATA_URL (already set for the lab);
-  or set NICS_BACKUP_URL to the full webhook address.
+  Run the script once and paste the key when asked (hidden; saved like setx for the nightly
+  task). Never commit it, never paste it into chats. Or: setx NICS_BACKUP_KEY <key>.
+  The server address defaults to the NICS n8n (derived from NICS_DATA_URL when set);
+  NICS_BACKUP_URL overrides it.
 
 Run:  venv\\Scripts\\python.exe scripts\\db_backup.py
 Nightly: scripts\\windows\\install_tasks.bat registers "NICS DB backup" (04:15).
@@ -50,6 +51,40 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUT = ROOT.parent / "backups" / "db"
 WEBHOOK_PATH = "nics-db-backup"
+DEFAULT_URL = f"https://n8n.aibyteconsult.com/webhook/{WEBHOOK_PATH}"
+
+
+def windows_user_env(name: str) -> str | None:
+    """Value saved with `setx` (HKCU\\Environment); setx does not reach windows already open."""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as k:
+            return str(winreg.QueryValueEx(k, name)[0]).strip() or None
+    except (ImportError, OSError):
+        return None
+
+
+def save_windows_user_env(name: str, value: str) -> bool:
+    """Same effect as `setx name value`, without the value appearing in the shell history."""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", 0, winreg.KEY_SET_VALUE) as k:
+            winreg.SetValueEx(k, name, 0, winreg.REG_SZ, value)
+        return True
+    except (ImportError, OSError):
+        return False
+
+
+def backup_key() -> str | None:
+    """Key from this window, else from setx, else asked once (hidden input) and saved for the nightly task."""
+    key = (os.environ.get("NICS_BACKUP_KEY") or "").strip() or windows_user_env("NICS_BACKUP_KEY")
+    if key or not sys.stdin.isatty():
+        return key
+    import getpass
+    key = getpass.getpass("Paste the backup key from n8n (hidden, press Enter): ").strip()
+    if key and save_windows_user_env("NICS_BACKUP_KEY", key):
+        print("key saved for the nightly task (same as setx)")
+    return key or None
 
 
 def backup_url(env: dict | None = None) -> str | None:
@@ -58,7 +93,7 @@ def backup_url(env: dict | None = None) -> str | None:
         return env["NICS_BACKUP_URL"]
     data = env.get("NICS_DATA_URL")
     if not data:
-        return None
+        return DEFAULT_URL
     base = data.rstrip("/").rsplit("/", 1)[0]
     return f"{base}/{WEBHOOK_PATH}"
 
@@ -220,9 +255,10 @@ def main(argv=None) -> int:
     ap.add_argument("--tables", nargs="*", help="only these tables (for tests)")
     args = ap.parse_args(argv)
 
-    url, key = backup_url(), os.environ.get("NICS_BACKUP_KEY")
-    if not url or not key:
-        sys.exit("Set NICS_BACKUP_KEY (and NICS_DATA_URL or NICS_BACKUP_URL) first - see the docstring.")
+    url, key = backup_url(), backup_key()
+    if not key:
+        sys.exit("No NICS_BACKUP_KEY: n8n -> [00 OPS] Database Backup Export -> Create or Show Backup Key, "
+                 "then run this script again and paste the key when asked.")
     out_root = Path(args.out)
     out_root.mkdir(parents=True, exist_ok=True)
 
