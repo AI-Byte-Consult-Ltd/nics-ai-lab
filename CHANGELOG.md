@@ -14,6 +14,40 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.11.0] - 2026-11-22
+
+NICS Language, stages 0 and 1 of the from-scratch plan. Nothing is trained yet and no
+production system is changed.
+
+### Added
+- `src/nics/text/tokenizer.py`: our own byte-level BPE tokenizer (merge learning, encoder,
+  decoder; standard library only). Lossless on any Unicode text, digits never merge,
+  control tokens are produced only on request so user text cannot inject them. One
+  vocabulary for all 12 site languages (ru, en, es, bg, pt, de, fr, it, pl, tr, ar, zh),
+  value slots for prices and symbols so the model never writes a number itself.
+- NICS Language model: rotary positions (`pos_encoding: rope`) and a key/value cache for
+  generation (same logits as a full pass, checked by test), top-k / greedy sampling, stop token.
+- `configs/text/micro.yaml` (23.6M parameters) and `configs/text/alpha.yaml` (50.3M).
+- `scripts/prepare_language_corpus.py` + `data_registry/language_sources.json`: corpus
+  builder with a licence gate (licence stated, commercial use allowed, date the licence was
+  read). `scripts/encode_corpus.py`: token files with a by-document train/validation split.
+- `scripts/bench_text.py` and `scripts\windows\bench_language.bat`: measured training and
+  generation speed of micro and alpha on the machine it runs on.
+- `src/nics/billing/metering.py`: token metering and credit pricing (1 credit = 0.01 EUR is
+  the wallet unit; proposed prices per 1K tokens, dated, append-only). Computes only.
+- Tests: `test_tokenizer.py`, `test_text_model.py`, `test_language_pipeline.py` (end to
+  end on synthetic text, including stop and resume), `test_metering.py`.
+
+### Changed
+- `scripts/train_tokenizer.py` and `scripts/train_text.py` rewritten for the own tokenizer,
+  memory-mapped token files, a time budget for nightly runs (`--max-minutes`) and resume.
+  Validation loss is measured on fixed windows. Resume continues after the saved step.
+
+### Removed
+- Dependency on the third-party `tokenizers` library.
+- `scripts/prepare_text_data.py` (Tiny Shakespeare download): NICS Language is not trained on
+  it. `configs/text/nano.yaml` and the `nics-text-nano` card stay as an archived record.
+
 ## [0.10.1] - 2026-11-21
 
 ### Fixed

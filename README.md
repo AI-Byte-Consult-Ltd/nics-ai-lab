@@ -1,6 +1,6 @@
 # NICS AI Lab
 
-**Version 0.7.2** -- see [`CHANGELOG.md`](CHANGELOG.md) for release history.
+**Version 0.11.0** -- see [`CHANGELOG.md`](CHANGELOG.md) for release history.
 Every merged change bumps this version; there are no unversioned changes.
 
 Independent model training infrastructure for **AI Byte Consult Ltd** / the
@@ -31,10 +31,11 @@ these models. See [`model_cards/`](model_cards/) for per-model provenance.
 
 | Model | Status | Parameters | Notes |
 |---|---|---|---|
-| `nics-text-nano` | First run complete | ~869K | CPU-trained, `tinyshakespeare-v1` dataset, proof-of-pipeline scale |
+| `nics-text-nano` | Archived pipeline check (Aug 2026) | ~869K | Not a NICS Language model; no longer trainable |
+| `nics-text-micro` | Prototype: code and tests ready, not trained yet | ~23.6M | NICS Language, first working size; own tokenizer for all 12 site languages |
+| `nics-text-alpha` | Plan: config ready, starts after micro passes its checks | ~50.3M | NICS Language, largest size realistic on the laptop CPU |
 | `nics-vision-nano` | First run complete | ~34K | CPU-trained, `fashion-mnist-v1`, 87.1% val accuracy, pipeline scale |
 | `nics-trading-nano` | Prototype: self-learning pipeline ready, not trained on real data yet | ~167K | NICS Trading; trains on all our trading data (`nics-market-v2`, own trades) plus public D1/W1 history, on the laptop |
-| `nics-text-alpha` | Planned | -- | |
 | `nics-vision-alpha` | Planned | -- | |
 
 Hardware: CPU only (no discrete GPU on the current training machine) --
@@ -78,28 +79,37 @@ data_registry/     dataset provenance (NOT the raw data itself)
 docs/              architecture, ownership, dataset governance
 model_cards/       per-model capability/limitation summaries
 requirements/      pinned dependencies (base + CPU torch)
-scripts/           entry points: prepare data, train tokenizer, train models
+scripts/           entry points: prepare data, train tokenizer, train models, benchmark
 src/nics/          library code: models, training loop, checkpointing, telemetry
 ```
 
-## Quickstart (CPU)
+## NICS Language quickstart (laptop, CPU)
 
-```bash
-python -m venv venv
-source venv/bin/activate   # or venv\Scripts\Activate.ps1 on Windows
-pip install -r requirements/cpu.txt
+Everything is ours: the tokenizer algorithm (`src/nics/text/tokenizer.py`, standard
+library only), the architecture, the training loop. No pretrained weights, no pretrained
+tokenizer, no third-party tokenization library.
 
-python scripts/prepare_text_data.py
-python scripts/train_tokenizer.py --vocab-size 512
-python scripts/train_text.py --config configs/text/nano.yaml --experiment-id exp-0001
+```bat
+scripts\windows\bench_language.bat                 :: how fast this laptop trains and answers (2 minutes, no data)
+venv\Scripts\python.exe scripts\prepare_language_corpus.py --list   :: which sources passed the licence check
+venv\Scripts\python.exe scripts\prepare_language_corpus.py          :: build the cleaned corpus
+venv\Scripts\python.exe scripts\train_tokenizer.py --vocab-size 24576
+venv\Scripts\python.exe scripts\encode_corpus.py --tokenizer data\processed\language\tokenizer-24k.json
+venv\Scripts\python.exe scripts\train_text.py --config configs\text\micro.yaml --max-minutes 290
 ```
 
-Every run produces, under `experiments/text/nics-text-nano/<experiment-id>/`:
+A corpus source is used only when `data_registry/language_sources.json` states its
+licence, allows commercial use and carries the date the licence was read; otherwise the
+pipeline refuses it. Validation documents are split off by document and never trained on.
+
+Every run produces, under `experiments/text/<model_id>/<experiment-id>/`:
 - `checkpoint-step-000000/` -- proof of random initialisation
 - `checkpoints/step-XXXXXX/` -- periodic resume checkpoints (not tracked in git)
 - `events.jsonl` -- structured telemetry (same schema the website API reads)
-- `manifest.json` -- seed, git commit, config, dataset, parameter count
-- `release/` -- final `model.safetensors` + checksums (not tracked in git; upload to R2)
+- `manifest.json` -- seed, git commit, config, corpus and tokenizer checksums, parameter count
+- `release/` -- final `model.safetensors` + checksums (not tracked in git)
+
+Token metering and credit prices (proposed, nothing is charged): `src/nics/billing/metering.py`.
 
 ## Versioning
 

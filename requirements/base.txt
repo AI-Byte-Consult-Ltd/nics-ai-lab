@@ -2,6 +2,5 @@ numpy
 pyyaml
 tqdm
 safetensors
-tokenizers
 pillow
 tzdata

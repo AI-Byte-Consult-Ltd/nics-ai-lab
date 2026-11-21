@@ -1,0 +1,38 @@
+[
+  {
+    "source_id": "gutenberg-starter-en",
+    "name": "Project Gutenberg, starter set of English public-domain books",
+    "lang": "en",
+    "kind": "gutenberg",
+    "items": [1342, 84, 2701, 98, 1661, 11, 345, 76, 1400, 174, 1260, 768],
+    "license": "Public domain in the United States (Project Gutenberg header and footer removed)",
+    "license_url": "https://www.gutenberg.org/policy/license.html",
+    "commercial_use": true,
+    "license_checked": null,
+    "notes": "License page could not be opened on 2026-11-21 (site in maintenance). The pipeline refuses this source until license_checked holds the date the page was read."
+  },
+  {
+    "source_id": "gutenberg-starter-es",
+    "name": "Project Gutenberg, starter set of Spanish public-domain books",
+    "lang": "es",
+    "kind": "gutenberg",
+    "items": [2000],
+    "license": "Public domain in the United States (Project Gutenberg header and footer removed)",
+    "license_url": "https://www.gutenberg.org/policy/license.html",
+    "commercial_use": true,
+    "license_checked": null,
+    "notes": "Same as gutenberg-starter-en. Book ids and their language are confirmed by the pipeline from each file's own header before the text is accepted."
+  },
+  {
+    "source_id": "nics-own-texts",
+    "name": "Texts written by AI Byte Consult: academy lessons, bot messages, channel posts",
+    "lang": "by-folder",
+    "kind": "local",
+    "path": "data/raw/language/nics-own-texts",
+    "license": "Own copyright, AI Byte Consult Ltd",
+    "license_url": null,
+    "commercial_use": true,
+    "license_checked": "2026-11-21",
+    "notes": "Put files under <path>/<lang>/*.txt (lang = one of the 12 site languages, e.g. ru, en, es, bg, pt). Text written by bot users must never be placed here."
+  }
+]
