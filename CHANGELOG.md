@@ -14,6 +14,17 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.9.1] - 2026-11-21
+
+### Added
+- Second candidate rule in shadow: `rule_level_squeeze_breakout` (level methodology:
+  squeeze into a level, breakout stop with luft, ATR reserve under 75 %, target 3 R).
+
+### Changed
+- No names of authors, schools, courses or companies anywhere: rule ids, descriptions,
+  outputs, registry and changelog use neutral words only. `tests/test_rules_shadow.py`
+  checks the rule outputs against a hashed list of such names.
+
 ## [0.9.0] - 2026-11-21
 
 ### Added
@@ -25,7 +36,7 @@ no silent, unversioned changes.
   counts as a loss. Results: `shadow/rules/<rule>.json`, `shadow/rules_last.txt`, and the
   CEO desk (same block as the direction test). The model does not train on a candidate
   until it is promoted after a 2-4 week forward review.
-- First candidate: `rule_strong_trend_pullback` (idea: Raschke & Connors ADX trend pullback).
+- First candidate: `rule_strong_trend_pullback` (pullback in a strong ADX trend).
 - `docs/rules_registry.md`: every rule given to the model, with source idea, exact
   definition, date, status and result, so no rule is added twice.
 - `tests/test_rules_shadow.py` (offline).

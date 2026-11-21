@@ -76,7 +76,7 @@ def russian(rule_id: str, meta, m: dict) -> str:
         return (f"{name}: {x['resolved']} сделок, TP1 {x['tp1_rate'] * 100:.0f}%, "
                 f"{x['avg_R']:+.2f} R на сделку, всего {x['total_R']:+.1f} R")
     return "\n".join([
-        f"Правило в тени: {rule_id} (идея: {meta[1]}), добавлено {meta[2]}",
+        f"Правило в тени: {rule_id}, добавлено {meta[2]}",
         line("Вперёд, наши свечи с даты добавления (главное)", m["forward"]),
         line("Наша история до добавления", m["broker_before"]),
         line("Публичная история (бэктест, без спреда)", m["backtest_public"]),
@@ -98,7 +98,7 @@ def main() -> None:
             continue
         added = datetime.fromisoformat(meta[2]).replace(tzinfo=timezone.utc).timestamp()
         m = measure(rule_id, series, added)
-        rep = {"rule": rule_id, "inspired_by": meta[1], "added": meta[2], "intervals": INTERVALS,
+        rep = {"rule": rule_id, "idea": meta[1], "added": meta[2], "intervals": INTERVALS,
                "note": "Shadow measurement on past candles, not a forecast. Stop entries, fill required; "
                        "a bar touching both stop and target counts as a loss.",
                **m, "updated_at": datetime.now(timezone.utc).isoformat()}

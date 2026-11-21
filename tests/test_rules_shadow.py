@@ -5,7 +5,9 @@ measurement on a SYNTHETIC snapshot (results meaningless).
 
   python tests/test_rules_shadow.py
 """
+import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -20,6 +22,9 @@ sys.path.insert(0, str(ROOT / "tests"))
 
 from nics.market import rules  # noqa: E402
 from test_trading_pipeline import make_snapshot  # noqa: E402
+
+
+BANNED = {'3f0dd39a35a47bab', '836c0a14b3a77351', '4f4418c4b53f4e3a', 'd6861e054ba9f4be', '0c915ba83dbac8a9', 'ca700c8aa0b8566b', 'e57571d905508b57', '27a0f645e20497a6', '4bad2eaec5cd6571', 'a97b73a0db48a29e', '864691f8a013e0b2', '6d50a53fe9365bde', 'f2bec3a0f8b2235a', '664a654a76f954df', '6f166e778d3e08c0', '175a680792c1fbf7', '4d48b51a3deb7a4e'}
 
 
 class S:  # minimal series
@@ -53,8 +58,16 @@ def main() -> None:
         out = subprocess.run([sys.executable, str(ROOT / "scripts/rules_shadow.py"), "--config", str(tmp / "c.yaml"),
                               "--snapshot", str(tmp)], check=True, capture_output=True, text=True).stdout
         summary = json.loads(out.strip().splitlines()[-1])
-        r = summary["rule_strong_trend_pullback"]
-        assert r["broker_before"]["setups"] + r["backtest_public"]["setups"] > 0, r
+        assert set(summary) == set(rules.CANDIDATES), summary
+        for r in summary.values():
+            assert r["broker_before"]["setups"] + r["backtest_public"]["setups"] > 0, r
+        # internal names only: no author / school / company names in what the rules output.
+        # The list is kept as hashes so the names themselves are not written in the repository.
+        low = (out + json.dumps(rules.CANDIDATES, ensure_ascii=False)).lower()
+        words = set(re.findall(r"[a-zа-яё]+", low))
+        assert not any(hashlib.sha256(w.encode()).hexdigest()[:16] in BANNED for w in words), \
+            "a person's, school's or company's name leaked into rule outputs"
+        r = summary["rule_level_squeeze_breakout"]
         assert (tmp / "exp" / "shadow" / "rules_last.txt").exists()
         rep = json.loads((tmp / "exp" / "shadow" / "rules" / "rule_strong_trend_pullback.json").read_text())
         assert {"forward", "broker_before", "backtest_public", "forward_by_symbol"} <= set(rep)
