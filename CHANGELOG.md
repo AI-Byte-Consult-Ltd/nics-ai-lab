@@ -14,6 +14,21 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.10.1] - 2026-11-21
+
+### Fixed
+- `scripts/db_backup.py` no longer stops with "Set NICS_BACKUP_KEY ... first" when the key
+  was set with `setx` in the same window or not set at all: it reads the value saved by
+  `setx` from the Windows user environment, otherwise asks for it once with hidden input
+  and saves it the same way for the nightly task. The server address defaults to the NICS
+  n8n, so `NICS_DATA_URL` / `NICS_BACKUP_URL` are optional.
+
+### Added
+- After every real run `db_backup.py` reports the result (finished time, rows, tables, size,
+  folder or the error) to the CEO desk through the existing lab metrics webhook
+  (`model=nics-db`, `kind=db_backup`, key `NICS_DATA_KEY`). The desk shows it in the new
+  block «Бэкап». No data and no keys are sent; a failed report never fails the backup.
+
 ## [0.10.0] - 2026-11-21
 
 ### Added

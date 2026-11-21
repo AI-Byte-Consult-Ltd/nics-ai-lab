@@ -226,17 +226,14 @@ scripts\windows\install_tasks.bat
 **Один раз:**
 1. n8n → workflow «[00 OPS] Database Backup Export» → нажмите **Execute** у узла
    «Create or Show Backup Key». В результате будет `db_backup_key` — скопируйте его.
-2. В новом окне cmd:
-   ```
-   setx NICS_BACKUP_KEY ВАШ_КЛЮЧ
-   ```
-   Закройте окно и откройте новое. Адрес сервера берётся из `NICS_DATA_URL` (шаг 2).
-3. `git pull`, потом первый бэкап вручную (10–30 минут, ~200–400 МБ):
+2. `git pull`, потом первый бэкап вручную (10–30 минут, ~200–400 МБ):
    ```
    .\venv\Scripts\python.exe scripts\db_backup.py
    ```
-   В конце строка `OK C:\NICS\backups\db\<дата_время>  rows=...`.
-4. Ночной бэкап в 04:15: `scripts\windows\install_tasks.bat` (заново, он добавит задачу
+   Скрипт спросит ключ: вставьте его (символы не видны) и нажмите Enter. Он сохранится
+   сам, как через `setx`, и ночной бэкап будет его брать. Адрес сервера задавать не
+   нужно. В конце строка `OK C:\NICS\backups\db\<дата_время>  rows=...`.
+3. Ночной бэкап в 04:15: `scripts\windows\install_tasks.bat` (заново, он добавит задачу
    «NICS DB backup»; если ноутбук ночью выключен — бэкап сделается при включении).
 
 **Где лежит:** `C:\NICS\backups\db\<дата_время>\` — `manifest.json` (сколько строк в
