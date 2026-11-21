@@ -1,3 +1,6 @@
+# ARCHIVED. Record of the August 2026 pipeline check (exp-0001). Not a NICS Language model
+# and no longer trainable: scripts/train_text.py refuses configs without data.tokens_dir.
+# NICS Language is trained from configs/text/micro.yaml and alpha.yaml.
 model_id: nics-text-nano
 seed: 42
 

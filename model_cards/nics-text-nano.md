@@ -1,5 +1,14 @@
 # Model Card: `nics-text-nano`
 
+## Status: archived (2026-11-22)
+
+This card records the August 2026 pipeline check. It is **not** NICS Language and is no
+longer trainable. Two things in it do not meet the NICS Language standard and were
+replaced: the corpus (a single small English text) and the tokenizer, whose vocabulary
+was learned from scratch but whose algorithm came from a third-party tokenization
+library. NICS Language (`nics-text-micro` and later) uses our own tokenizer
+(`src/nics/text/tokenizer.py`) and the licence-checked multilingual corpus.
+
 ## Summary
 
 A tiny decoder-only Transformer language model, trained entirely from

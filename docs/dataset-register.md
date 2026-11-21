@@ -29,7 +29,7 @@ Every entry in `data_registry/datasets.json` must carry: `dataset_id`,
 
 ## Registered datasets
 
-### `tinyshakespeare-v1`
+### `tinyshakespeare-v1` (archived: used only for the August 2026 pipeline check, NICS Language is not trained on it)
 
 | Field | Value |
 |---|---|
@@ -127,3 +127,20 @@ NICS scanner's signals with their outcomes, exported by the private n8n
 workflow `[41 LAB] Market Data Export`. Snapshots live only on the training
 machine under `data/market/<date>/`, each with a `manifest.json` holding row
 counts and sha256; the training manifest copies those hashes. No user data.
+
+## NICS Language corpus
+
+Sources are listed in `data_registry/language_sources.json`; the builder
+(`scripts/prepare_language_corpus.py`) refuses a source unless it states a licence,
+allows commercial use and carries `license_checked` -- the date the licence page was
+actually read. Built sources are recorded in `data_registry/datasets.json` with the
+checksum of every document. Text written by bot users is never a source.
+
+| Source | Languages | Licence | Status |
+|---|---|---|---|
+| `nics-own-texts` | by folder | Own copyright, AI Byte Consult Ltd | Usable; folder to be filled |
+| `gutenberg-starter-en` | en | Public domain (US), PG header/footer removed | Refused until the licence page is read (site was in maintenance on 2026-11-21) |
+| `gutenberg-starter-es` | es | Public domain (US), PG header/footer removed | Same |
+
+Still to be found and licence-checked before use: general text for ru, bg, pt and the
+second-wave languages (de, fr, it, pl, tr), then ar and zh.
