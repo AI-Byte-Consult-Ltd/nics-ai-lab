@@ -38,7 +38,8 @@ def main() -> None:
         with open(tmp / "signals.csv", newline="") as f:  # give the signals plan groups
             rows = list(csv.DictReader(f))
         for k, r in enumerate(rows):
-            r["plan_group"] = "STRONG" if k % 2 else "WEAK"
+            r["plan_group"] = "gold" if k % 2 else "forex"
+            r["delivery_status"] = "SENT" if k % 3 == 0 else "READY"
         with open(tmp / "signals.csv", "w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=list(rows[0]))
             w.writeheader(); w.writerows(rows)
@@ -62,9 +63,11 @@ def main() -> None:
                               "--days", "800"], check=True, capture_output=True, text=True).stdout
         last = json.loads(out.strip().splitlines()[-1])
         assert last["resolved"] > 0 and last["agree"] + last["disagree"] == last["resolved"], last
+        assert last["ideas"]["signals"] >= last["signals"], last  # headline = sent only
         reps = sorted((tmp / "exp" / "shadow" / "direction_reports").glob("*.json"))
         rep = json.loads(reps[-1].read_text(encoding="utf-8"))
-        assert set(rep["by_plan_group"]) <= {"STRONG", "WEAK"}, rep["by_plan_group"].keys()
+        assert set(rep["sent_by_asset_class"]) <= {"gold", "forex"}, rep["sent_by_asset_class"].keys()
+        assert rep["all_records_raw"]["signals"] >= rep["all_unique_ideas"]["signals"] >= rep["total"]["signals"]
         assert (tmp / "exp" / "shadow" / "direction_last.txt").exists()
         print("\n".join(out.strip().splitlines()[:-1]))
         print("DIRECTION SHADOW TEST PASSED (synthetic data, results meaningless)")
