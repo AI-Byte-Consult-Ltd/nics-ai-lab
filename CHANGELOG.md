@@ -14,7 +14,7 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
-## [0.9.4] - 2026-11-21
+## [0.10.1] - 2026-11-21
 
 ### Fixed
 - `scripts/db_backup.py` no longer stops with "Set NICS_BACKUP_KEY ... first" when the key
@@ -28,6 +28,17 @@ no silent, unversioned changes.
   folder or the error) to the CEO desk through the existing lab metrics webhook
   (`model=nics-db`, `kind=db_backup`, key `NICS_DATA_KEY`). The desk shows it in the new
   block «Бэкап». No data and no keys are sent; a failed report never fails the backup.
+
+## [0.10.0] - 2026-11-21
+
+### Added
+- `src/nics/market/registry.py`: machine-readable rules registry. It lists every rule the
+  model learns from, every rule in shadow and the queue, with status, date and version,
+  in neutral names only. After every nightly cycle it is pushed to the CEO desk as
+  kind `rules` and shown there as a separate list. A test keeps it in sync with
+  `methods.py` and `rules.py`.
+- Queue extended with 11 neutral rule ideas from trading books. They are added one at a
+  time through shadow.
 
 ## [0.9.3] - 2026-11-21
 

@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "tests"))
 
-from nics.market import rules  # noqa: E402
+from nics.market import methods, registry, rules  # noqa: E402
 from test_trading_pipeline import make_snapshot  # noqa: E402
 
 
@@ -46,6 +46,14 @@ def main() -> None:
     # short mirror
     sh = {"direction": -1, "bar": 0, "entry": 10.0, "sl": 11.0, "tp1": 8.0, "valid_bars": 2}
     assert rules.outcome(S([10.5, 10.4, 10.0], [10.2, 9.8, 7.9]), sh, 10) == (True, 1, 1, 2)
+    # the registry matches the code: methods in training, candidates in shadow
+    reg = {r["id"]: r for r in registry.REGISTRY}
+    assert {k for k, r in reg.items() if r["status"] == "training"} == set(methods.METHODS), reg
+    assert {k for k, r in reg.items() if r["status"] == "shadow"} == \
+        {k for k, m in rules.CANDIDATES.items() if m[3] == "shadow"}
+    assert all(r["status"] in registry.STATUS_RU for r in registry.REGISTRY)
+    words = set(re.findall(r"[a-zа-яё]+", json.dumps(registry.summary(), ensure_ascii=False).lower()))
+    assert not any(hashlib.sha256(w.encode()).hexdigest()[:16] in BANNED for w in words), "name in registry"
     for rid, meta in rules.CANDIDATES.items():
         assert meta[0] in vars(rules) and meta[3] in ("shadow", "promoted", "rejected"), rid
 

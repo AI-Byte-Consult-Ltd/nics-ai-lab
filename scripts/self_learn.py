@@ -248,6 +248,8 @@ def main() -> None:
                 if texts:
                     push("nics-trading", "direction", report.get("direction_shadow") or {},
                          text="\n\n".join(texts), cycle=stamp, log=log)
+                from nics.market.registry import summary as rules_registry
+                push("nics-trading", "rules", rules_registry(), cycle=stamp, log=log)  # rules list block
             except Exception as e:  # noqa: BLE001 - the dashboard must never break training
                 log(f"dashboard push skipped: {e}")
         lock.unlink(missing_ok=True)
