@@ -6,6 +6,9 @@ Run every 2 minutes on the laptop (task "NICS Trading opinion", install_tasks.ba
   2. only if there are such signals: 15-minute candles (6 days) for their symbols;
   3. the champion scores each signal and its mirror (opposite direction, same entry,
      same stop/take distances) -> agree / against + P(TP1 before SL) for both sides;
+     then its OWN plan: it scores a grid of variants (both directions, entry as in the
+     signal or at market, stop 0.75-2.5 ATR, take 1-3 R) and picks the one with the best
+     expected R after spread;
   4. POST to n8n "[43 LAB] Model Opinion" (/webhook/nics-lab-opinion, same lab key),
      which sends it to Alexander in Telegram. Nobody else sees it.
 
@@ -38,7 +41,35 @@ from nics.training import trading as T  # noqa: E402
 import fetch_market_data as fm  # noqa: E402
 
 LOG_COLS = ["signal_id", "symbol", "created_at", "scanner_direction", "model_direction", "p_scanner_side",
-            "p_other_side", "experiment_id", "sent_at"]
+            "p_other_side", "exp_r_signal", "plan_direction", "plan_entry", "plan_entry_kind", "plan_sl", "plan_tp",
+            "plan_rr", "plan_p", "plan_exp_r", "experiment_id", "sent_at"]
+SL_ATR = (0.75, 1.0, 1.5, 2.0, 2.5)
+RR = (1.0, 1.5, 2.0, 3.0)
+
+
+def rnd(x: float, ref: float) -> float:
+    """Round a price to ~6 significant digits of the instrument's price."""
+    dec = max(0, 5 - int(np.floor(np.log10(abs(ref))))) if ref else 5
+    return round(float(x), dec)
+
+
+def variants(f: np.ndarray, close: float, atr: float) -> tuple[np.ndarray, list[dict]]:
+    """Feature rows of plan variants built from one scored signal row f. Only the trade
+    geometry changes (direction, entry, stop, take); market context stays the same."""
+    d0 = 1 if f[0] > 0 else -1
+    sig_entry = close + d0 * f[1] * atr
+    rows, plans = [], []
+    for d in (1, -1):
+        for kind, entry in (("signal", sig_entry), ("market", close)):
+            for k in SL_ATR:
+                for rr in RR:
+                    g = f.copy()
+                    g[0], g[1], g[2], g[3], g[4] = d, d * (entry - close) / atr, k, k * rr, rr
+                    rows.append(g)
+                    plans.append({"direction": d, "entry_kind": kind, "entry": entry,
+                                  "sl": entry - d * k * atr, "tp": entry + d * k * rr * atr, "rr": rr,
+                                  "cost": float(f[5]) / k})
+    return np.array(rows, dtype=np.float32), plans
 
 
 def opinion_url(env=None) -> str | None:
@@ -94,9 +125,24 @@ def score(cfg, snap: Path, model, ids: set[str]) -> list[dict]:
     out = []
     for sid, a, b in pairs:
         d = "LONG" if S["f"][a][0] > 0 else "SHORT"
-        out.append({"signal_id": sid, "symbol": series[int(S["sid"][a])].symbol, "created_at": T.iso(S["t0"][a]),
-                    "scanner_direction": d, "model_direction": d if p[a] >= p[b] else ("SHORT" if d == "LONG" else "LONG"),
-                    "p_scanner_side": round(float(p[a]), 4), "p_other_side": round(float(p[b]), 4)})
+        s, i = series[int(S["sid"][a])], int(S["end"][a])
+        o = {"signal_id": sid, "symbol": s.symbol, "created_at": T.iso(S["t0"][a]),
+             "scanner_direction": d, "model_direction": d if p[a] >= p[b] else ("SHORT" if d == "LONG" else "LONG"),
+             "p_scanner_side": round(float(p[a]), 4), "p_other_side": round(float(p[b]), 4)}
+        fa = S["f"][a]
+        o["exp_r_signal"] = round(float(p[a] * fa[4] - (1 - p[a]) - fa[5] / fa[2]), 3) if fa[2] > 0 else None
+        close, atr = float(s.c[i]), float(s.atr[i])
+        if atr > 0:
+            rows, plans = variants(fa, close, atr)
+            V = {"sid": np.full(len(rows), S["sid"][a]), "end": np.full(len(rows), i), "f": rows}
+            pv = T.predict_signal(model, win, V, np.ones(len(rows), bool))
+            ev = [q * pl["rr"] - (1 - q) - pl["cost"] for q, pl in zip(pv, plans)]
+            k = int(np.argmax(ev))
+            pl = plans[k]
+            o.update(plan_direction="LONG" if pl["direction"] > 0 else "SHORT", plan_entry=rnd(pl["entry"], close),
+                     plan_entry_kind=pl["entry_kind"], plan_sl=rnd(pl["sl"], close), plan_tp=rnd(pl["tp"], close),
+                     plan_rr=pl["rr"], plan_p=round(float(pv[k]), 4), plan_exp_r=round(float(ev[k]), 3))
+        out.append(o)
     return out
 
 
@@ -119,7 +165,14 @@ def main() -> None:
     done = set()
     if log_path.exists():
         with open(log_path, newline="", encoding="utf-8") as f:
-            done = {r["signal_id"] for r in csv.DictReader(f)}
+            rd = csv.DictReader(f)
+            old = list(rd)
+            done = {r["signal_id"] for r in old}
+        if rd.fieldnames != LOG_COLS:  # older version of the log: rewrite it with the new columns
+            with open(log_path, "w", newline="", encoding="utf-8") as f:
+                w = csv.DictWriter(f, fieldnames=LOG_COLS, extrasaction="ignore")
+                w.writeheader()
+                w.writerows(old)
 
     name, cols = fm.TABLES["signals"]
     rows = fm.fetch(url, key, {"mode": "signals", "days": 1}).get("rows") or []
@@ -150,13 +203,14 @@ def main() -> None:
     target = opinion_url()
     new = not log_path.exists()
     with open(log_path, "a", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=LOG_COLS)
+        w = csv.DictWriter(f, fieldnames=LOG_COLS, extrasaction="ignore")
         if new:
             w.writeheader()
         for o in ops:
             o["experiment_id"] = man.get("experiment_id")
             print(f"{o['symbol']:10s} {o['scanner_direction']:5s} model {o['model_direction']:5s} "
-                  f"p {o['p_scanner_side']:.2f} / {o['p_other_side']:.2f}")
+                  f"p {o['p_scanner_side']:.2f} / {o['p_other_side']:.2f}  plan {o.get('plan_direction')} "
+                  f"{o.get('plan_entry')} sl {o.get('plan_sl')} tp {o.get('plan_tp')} exp {o.get('plan_exp_r')}")
             if args.dry_run:
                 continue
             if target and post(target, key, o):

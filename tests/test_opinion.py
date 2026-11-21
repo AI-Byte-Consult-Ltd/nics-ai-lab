@@ -59,6 +59,12 @@ def main() -> None:
             assert 0 <= o["p_scanner_side"] <= 1 and 0 <= o["p_other_side"] <= 1, o
             agree = o["model_direction"] == o["scanner_direction"]
             assert agree == (o["p_scanner_side"] >= o["p_other_side"]), o
+            # the model's own plan: consistent geometry, best expected R of its grid
+            assert o["plan_direction"] in ("LONG", "SHORT") and o["plan_entry_kind"] in ("signal", "market"), o
+            up = o["plan_direction"] == "LONG"
+            assert (o["plan_sl"] < o["plan_entry"] < o["plan_tp"]) if up else (o["plan_tp"] < o["plan_entry"] < o["plan_sl"]), o
+            assert abs(abs(o["plan_tp"] - o["plan_entry"]) / abs(o["plan_entry"] - o["plan_sl"]) - o["plan_rr"]) < 0.02, o
+            assert 0 <= o["plan_p"] <= 1 and o["exp_r_signal"] is not None, o
         print(f"OK: {len(ops)} opinions, e.g. {ops[0]}")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
