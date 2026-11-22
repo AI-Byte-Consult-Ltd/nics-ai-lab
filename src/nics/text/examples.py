@@ -427,11 +427,31 @@ def required_slots(targets: int, has_conf: bool, has_note: bool) -> dict[str, in
     return need
 
 
-def check(text: str, targets: int, has_conf: bool, has_note: bool) -> list[str]:
+_WORD = re.compile(r"[^\W\d_]+")
+_VOCABULARY: dict[str, frozenset[str]] = {}
+
+
+def vocabulary(lang: str) -> frozenset[str]:
+    """Every word our phrase bank uses in this language (both directions), lower case."""
+    if lang not in _VOCABULARY:
+        words: set[str] = set()
+        for variants in BANK[lang].values():
+            for variant in variants:
+                for direction in ("buy", "sell"):
+                    plain = _ALLOWED_TAGS.sub(" ", _SLOT_TOKEN.sub(" ", _render(variant, direction)))
+                    words.update(w.lower() for w in _WORD.findall(plain))
+        _VOCABULARY[lang] = frozenset(words)
+    return _VOCABULARY[lang]
+
+
+def check(text: str, targets: int, has_conf: bool, has_note: bool, lang: str | None = None) -> list[str]:
     """Why a generated post must not be published; an empty list means it may.
 
     Checked by code, never by the model: exact slots, no digits (every number comes from
-    a slot), only <b>/<i> tags, sane length. A failed post is replaced by the template."""
+    a slot), only <b>/<i> tags, sane length and, when lang is given, a closed vocabulary:
+    every word must be one our own phrases use in that language, so a post in another
+    language, a mixed one or one with an invented word is refused. A failed post is
+    replaced by the template."""
     problems = []
     found: dict[str, int] = {}
     for token in _SLOT_TOKEN.findall(text):
@@ -450,6 +470,11 @@ def check(text: str, targets: int, has_conf: bool, has_note: bool) -> list[str]:
         problems.append("markup other than <b> and <i>")
     if plain.count("<b>") != plain.count("</b>") or plain.count("<i>") != plain.count("</i>"):
         problems.append("unbalanced tags")
+    if lang is not None:
+        known = vocabulary(lang)
+        strange = sorted({w.lower() for w in _WORD.findall(_ALLOWED_TAGS.sub(" ", plain))} - known)
+        if strange:
+            problems.append(f"words outside the {lang} vocabulary: {', '.join(strange[:5])}")
     words = len(plain.split())
     if not 15 <= words <= 140:
         problems.append(f"length {words} words")

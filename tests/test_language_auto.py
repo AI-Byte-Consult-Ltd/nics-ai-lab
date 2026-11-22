@@ -87,7 +87,7 @@ def test_journal_examples_are_valid_and_filled_safely():
                     for note in (True, False):
                         for _ in range(30):
                             text = ex.compose(lang, direction, targets, conf, note, rng)
-                            assert ex.check(text, targets, conf, note) == [], (lang, text)
+                            assert ex.check(text, targets, conf, note, lang) == [], (lang, text)
                             assert "{" not in text and "|}" not in text
     text = ex.compose("ru", "buy", 2, True, True, rng)
     # the checker refuses what the model must never do
@@ -95,6 +95,10 @@ def test_journal_examples_are_valid_and_filled_safely():
     assert ex.check(text + " <|tp1|>", 2, True, True)                           # unexpected slot
     assert ex.check(text + " <a href='x'>x</a>", 2, True, True)                 # other markup
     assert ex.check(text, 2, True, False)                                       # note slot without a note
+    assert ex.check(text, 2, True, True, "ru") == [] and ex.check(text, 2, True, True, "en")   # wrong language
+    spanish = ex.compose("es", "buy", 2, True, True, rng)
+    assert ex.check(spanish, 2, True, True, "pt") and ex.check(spanish, 2, True, True, "es") == []
+    assert ex.check(text.replace("<|stop|>", "<|stop|> гарантия"), 2, True, True, "ru")           # invented word
     filled = ex.fill(text, {"symbol": "XAUUSD", "entry": "1-2", "stop": "0.5", "targets": "3, 4", "conf": "70",
                             "note": "<b>x</b> & <|stop|>"})
     assert "&lt;b&gt;x&lt;/b&gt; &amp; &lt;|stop|&gt;" in filled and "<|" not in filled

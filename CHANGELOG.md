@@ -14,6 +14,14 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.14.1] - 2026-11-22
+
+### Fixed
+- The journal check now also refuses a post in the wrong language, a mixed one or one
+  with an invented word: every word must be one our own phrases use in the requested
+  language (closed vocabulary). Found on a trial model that wrote fluent Spanish for an
+  English request and passed the earlier check.
+
 ## [0.14.0] - 2026-11-22
 
 Ten well-known trading methods tested on our data; the trend methods that beat ours become

@@ -2,7 +2,8 @@
 
 Loads the newest checkpoint of an experiment, asks for posts over all languages and fact
 combinations and runs every answer through nics.text.examples.check(): exact value
-slots, no digits written by the model, allowed markup, length. The share of answers that
+slots, no digits written by the model, allowed markup, length, and only words of the
+requested language that our own phrases use. The share of answers that
 pass is the number that decides whether the model may ever replace the current text
 source; a post that fails is never published (the template is used instead).
 
@@ -44,7 +45,7 @@ def evaluate(model, tok, samples: int, seed: int = 11, temperature: float = 0.7,
         new_tokens += len(answer)
         ended = bool(answer) and answer[-1] == end_id
         text = tok.decode(answer[:-1] if ended else answer)
-        problems = examples.check(text, targets, conf, note) + ([] if ended else ["no end marker"])
+        problems = examples.check(text, targets, conf, note, lang) + ([] if ended else ["no end marker"])
         stat = by_lang.setdefault(lang, {"passed": 0, "total": 0})
         stat["total"] += 1
         if not problems:
