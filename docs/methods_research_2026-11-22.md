@@ -111,9 +111,12 @@ not evidence either way.
 ## What was done with it
 
 - **NICS Trading model:** the daily states of m07, m01, m02 (+ borderline m09, m05) and their
-  average vote are new input features on every bar of every timeframe (`trend_context.py`,
-  version 0.12.0). They are not filters and not setups: the model learns how much they matter.
-  The feature schema changes, so the next nightly cycle trains a fresh model.
+  average vote are six input features on every bar of every timeframe (`trend_context.py`,
+  version 0.12.0). Not filters, not setups. Quick check on our broker 1h/4h/D1 data (1500 steps,
+  same seed, with vs without): validation score 1.7432 vs 1.7415 (lower is better), signal test
+  AUC 0.589 vs 0.585, horizon test accuracy 0.357 vs 0.367: **no gain for the intraday heads**.
+  So they run as a **trial**: every scratch night the laptop trains one extra fresh model with
+  them, and it becomes champion only if it beats the current one on the same new data.
 - **Shadow in n8n:** `[48 SHADOW] Daily Trend Methods (no delivery)` measures m07, m01 and m02
   forward on broker D1 from 23.11.2026 into the table `trend_shadow_trades`. Nothing is sent to
   anyone. First look 22.12.2026; a real verdict needs about 3 months (few trades, long holds).

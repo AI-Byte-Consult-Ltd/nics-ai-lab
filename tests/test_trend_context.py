@@ -56,8 +56,17 @@ def main() -> None:
     assert np.array_equal(h1.htf[23, :-1], st[600]) and np.array_equal(h1.htf[47, :-1], st[601])
     assert np.array_equal(d1.htf[10, :-1], st[10]), "a daily bar sees its own close"
     assert np.allclose(h1.htf[:, -1], h1.htf[:, :-1].mean(axis=1))
+    # off by default: the schema of older models is unchanged
+    assert market.BAR_FEATURES == market.BAR_FEATURES_CORE and market.bar_features(h1)[0].shape[1] == len(market.BAR_FEATURES_CORE)
+    market.use_trend_context(True)
     f, _ = market.bar_features(h1)
     assert f.shape[1] == len(market.BAR_FEATURES) and market.BAR_FEATURES[-len(tc.TREND_FEATURES):] == tc.TREND_FEATURES
+    assert np.array_equal(f[:, -len(tc.TREND_FEATURES):], h1.htf.astype(np.float32))
+    # a loaded model locks the schema it was trained with; config calls do not override it
+    from nics.training import trading as T
+    T.lock_schema_from({"bar_features": list(market.BAR_FEATURES_CORE)})
+    market.use_trend_context(True)
+    assert not market.trend_context_on() and market.BAR_FEATURES == market.BAR_FEATURES_CORE
 
     with tempfile.TemporaryDirectory() as tmp:
         p = Path(tmp) / "ctx.csv"

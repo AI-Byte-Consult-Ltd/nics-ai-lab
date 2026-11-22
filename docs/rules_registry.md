@@ -51,7 +51,9 @@ From the research of 22.11.2026 (`docs/methods_research_2026-11-22.md`): ten wel
 coded as rules and backtested on 1990–2026 daily history, out-of-sample from 2018, costs and
 swaps included. The state of each method below (+1 long, −1 short, 0 flat) on the instrument's
 daily candles is an input on every bar of every timeframe (`src/nics/market/trend_context.py`),
-plus their average vote. Inputs, not filters: the model decides what they are worth.
+plus their average vote. Inputs, not filters: the model decides what they are worth. Since
+0.12.0 as a **trial** (`trend_context.trial`): a model with them replaces the champion only if it
+scores better on the same new data.
 
 | id | idea | OOS avg R | t | status |
 |---|---|---|---|---|

@@ -37,8 +37,15 @@ and the EAs are untouched; a shadow stream in n8n only measures).
 - `tests/test_trend_context.py`; registry: status `feature` and five `rejected` rules.
 
 ### Changed
-- Feature schema (+6 bar features): the champion cannot warm-start; the next nightly cycle
-  trains a fresh model and the model opinion is unavailable only while that run trains.
+- The trend features are a **trial**, not switched on for everyone (`trend_context.enabled: false`,
+  `trial: true`): the nightly cycle trains one extra fresh model WITH them (first night, then on
+  weekly scratch nights) and it replaces the champion only if its validation score on the same new
+  data is better; a champion that has them keeps them (a loaded model always runs with the
+  features it was trained with, `lock_schema_from`). The current champion keeps working unchanged.
+  Why a trial: a quick check on our broker 1h/4h/D1 data (1500 steps, same seed) showed no gain
+  for the intraday heads (validation score 1.7432 with vs 1.7415 without; signal test AUC 0.589
+  vs 0.585); the methods are strong on daily positions, which is not what the model predicts yet.
+- `train_trading.py --trend-context on|off|config`.
 
 ## [0.11.0] - 2026-11-22
 
