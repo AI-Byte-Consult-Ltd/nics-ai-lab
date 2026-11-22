@@ -14,6 +14,15 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.15.0] - 2026-11-22
+
+### Added
+- Remote start of a NICS Language run: `scripts/language_remote.py` runs inside the
+  2-minute task, reads `control/language_request.json` from `origin/main` and starts
+  `language_auto.py --max-minutes N` once per request id. Minutes are clamped to
+  10..240, requests expire at `not_after`, nothing starts between 02:00 and 08:00
+  local time. The file carries no commands, only this one fixed action.
+
 ## [0.14.2] - 2026-11-22
 
 ### Added
