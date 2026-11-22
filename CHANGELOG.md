@@ -14,12 +14,6 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
-## [0.17.1] - 2026-11-22
-
-### Fixed
-- A remotely requested NICS Language run now updates the checkout first
-  (`git pull --ff-only`), so it uses the newest code and text sources.
-
 ## [0.18.0] - 2026-11-22
 
 ### Added
@@ -29,6 +23,12 @@ no silent, unversioned changes.
   with its own JavaScript engine on the device (site repository, `public/geo/`), no
   third-party runtime; checked against PyTorch on three photos: largest logit difference
   0.013, largest probability difference 0.002.
+
+## [0.17.1] - 2026-11-22
+
+### Fixed
+- A remotely requested NICS Language run now updates the checkout first
+  (`git pull --ff-only`), so it uses the newest code and text sources.
 
 ## [0.17.0] - 2026-11-22
 
