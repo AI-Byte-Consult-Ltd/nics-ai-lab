@@ -53,7 +53,7 @@ BASE_FEATURES = [
 ]
 BAR_FEATURES_CORE = (BASE_FEATURES + INDICATOR_FEATURES + PATTERN_FEATURES
                      + [f"tf_{i}" for i in INTERVALS] + ["is_public"])
-# The feature list in use. The daily trend context (trend_context.py, 0.12.0) adds TREND_FEATURES
+# The feature list in use. The daily trend context (trend_context.py, 0.14.0) adds TREND_FEATURES
 # at the end when it is on. Who decides: a loaded model decides for itself (its manifest), so a
 # champion trained without the context keeps working; otherwise the config (trend_context.enabled).
 BAR_FEATURES = list(BAR_FEATURES_CORE)

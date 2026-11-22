@@ -14,7 +14,7 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
-## [0.12.0] - 2026-11-22
+## [0.14.0] - 2026-11-22
 
 Ten well-known trading methods tested on our data; the trend methods that beat ours become
 inputs of NICS Trading. No live system changes behaviour (the scanner, the level method, the bot
@@ -46,6 +46,54 @@ and the EAs are untouched; a shadow stream in n8n only measures).
   for the intraday heads (validation score 1.7432 with vs 1.7415 without; signal test AUC 0.589
   vs 0.585); the methods are strong on daily positions, which is not what the model predicts yet.
 - `train_trading.py --trend-context on|off|config`.
+## [0.13.1] - 2026-11-22
+
+### Added
+- `scripts/eval_journal.py`: asks the current weights for journal posts over all languages
+  and fact combinations and counts how many pass the code check. Run after every training
+  night; the share is part of the night report on the dashboard.
+
+## [0.13.0] - 2026-11-22
+
+NICS Language: our own task examples for the first task (journal post about a demo trade).
+
+### Added
+- `src/nics/text/examples.py`: phrase bank written by us in ru, en, es, bg, pt and a
+  composer of "facts in, text out" records. The model writes value slots, never a number,
+  a ticker or the trader's note; `check()` validates a generated post by code (exact
+  slots, no digits, only `<b>`/`<i>`, length) and `fill()` puts escaped real values in.
+- `scripts/make_language_examples.py` and task records in `scripts/encode_corpus.py`
+  (about 4 % of the training tokens), so the first model learns the task format together
+  with general language. The night run writes them automatically.
+
+## [0.12.0] - 2026-11-22
+
+NICS Language: first training corpus and unattended nightly training on the laptop.
+
+### Added
+- Corpus sources with licences read on 2026-11-22: United Nations Parallel Corpus v1.0
+  (ru, en, es; small samples of ar, zh) and Europarl v8 (bg, pt, es, en; small samples of
+  de, fr, it, pl). New source kind `opus_mono` in `scripts/prepare_language_corpus.py`:
+  the file is read as a stream and reading stops at the size limit, repeated and very
+  short lines are dropped, nothing raw is kept on disk.
+- `scripts/language_auto.py`: does whatever is missing (corpus, tokenizer, token files)
+  and then trains nics-text-micro until a stop time; an interrupted night continues the
+  next night. `scripts/language_night.py`: one training session with a report.
+  `scripts\windows\language_train.bat` for a run by hand.
+- The nightly NICS Trading cycle (`scripts/self_learn.py`) now gives the rest of the night
+  to NICS Language (until 08:00 local time; only for cycles that end between 03:00 and
+  07:00). `NICS_LANGUAGE_AUTO=0` turns it off, `NICS_LANGUAGE_UNTIL` moves the stop time.
+- Every stage reports its status to the private dashboard (model `nics-language`).
+- `scripts/encode_corpus.py --langs`: the tokenizer learns all languages that have text,
+  the first model is trained on ru, en, es, bg, pt.
+
+### Changed
+- The corpus provenance file moved to `data/processed/language/datasets.json` (not
+  tracked), so building the corpus on the laptop cannot block `git pull`.
+
+### Known limits
+- The first corpus is official and parliamentary language only; Project Gutenberg is
+  still refused (licence page unreachable), Turkish has no source yet.
 
 ## [0.11.0] - 2026-11-22
 

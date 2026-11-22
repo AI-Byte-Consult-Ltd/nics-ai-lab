@@ -45,14 +45,14 @@ overconfident in it.
 | method_ema_pullback | trend pullback to EMA20 | EMA20 > EMA50, both rising; bar touches EMA20 and closes above it; stop 0.5 ATR beyond the 5-bar extreme; target 1.5 R |
 | method_level_bounce | bounce from a swing level | level touched at least twice in 200 bars; price comes back and closes off it; stop 0.7 ATR beyond; target 2 R |
 
-## Model features: daily trend context (since 0.12.0)
+## Model features: daily trend context (since 0.14.0)
 
 From the research of 22.11.2026 (`docs/methods_research_2026-11-22.md`): ten well-known methods
 coded as rules and backtested on 1990–2026 daily history, out-of-sample from 2018, costs and
 swaps included. The state of each method below (+1 long, −1 short, 0 flat) on the instrument's
 daily candles is an input on every bar of every timeframe (`src/nics/market/trend_context.py`),
 plus their average vote. Inputs, not filters: the model decides what they are worth. Since
-0.12.0 as a **trial** (`trend_context.trial`): a model with them replaces the champion only if it
+0.14.0 as a **trial** (`trend_context.trial`): a model with them replaces the champion only if it
 scores better on the same new data.
 
 | id | idea | OOS avg R | t | status |

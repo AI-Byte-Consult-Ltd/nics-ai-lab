@@ -112,7 +112,7 @@ not evidence either way.
 
 - **NICS Trading model:** the daily states of m07, m01, m02 (+ borderline m09, m05) and their
   average vote are six input features on every bar of every timeframe (`trend_context.py`,
-  version 0.12.0). Not filters, not setups. Quick check on our broker 1h/4h/D1 data (1500 steps,
+  version 0.14.0). Not filters, not setups. Quick check on our broker 1h/4h/D1 data (1500 steps,
   same seed, with vs without): validation score 1.7432 vs 1.7415 (lower is better), signal test
   AUC 0.589 vs 0.585, horizon test accuracy 0.357 vs 0.367: **no gain for the intraday heads**.
   So they run as a **trial**: every scratch night the laptop trains one extra fresh model with

@@ -133,14 +133,19 @@ counts and sha256; the training manifest copies those hashes. No user data.
 Sources are listed in `data_registry/language_sources.json`; the builder
 (`scripts/prepare_language_corpus.py`) refuses a source unless it states a licence,
 allows commercial use and carries `license_checked` -- the date the licence page was
-actually read. Built sources are recorded in `data_registry/datasets.json` with the
+actually read. Built sources are recorded in `data/processed/language/datasets.json` (next to the corpus, not in git) with the
 checksum of every document. Text written by bot users is never a source.
 
 | Source | Languages | Licence | Status |
 |---|---|---|---|
 | `nics-own-texts` | by folder | Own copyright, AI Byte Consult Ltd | Usable; folder to be filled |
-| `gutenberg-starter-en` | en | Public domain (US), PG header/footer removed | Refused until the licence page is read (site was in maintenance on 2026-11-21) |
+| `un-corpus-ru`, `-en`, `-es` | ru, en, es | United Nations Parallel Corpus v1.0: no warranty, the United Nations must be acknowledged as the source, "no other restrictions apply" (page read 2026-11-22) | Usable, first training set |
+| `europarl-bg`, `-pt`, `-es`, `-en` | bg, pt, es, en | Europarl: "We are not aware of any copyright restrictions of the material" (page read 2026-11-22) | Usable, first training set |
+| `europarl-de`, `-fr`, `-it`, `-pl`, `un-corpus-ar`, `-zh` | de, fr, it, pl, ar, zh | Same two licences | Usable; small samples for the shared tokenizer only, not in the first training set |
+| `gutenberg-starter-en` | en | Public domain (US), PG header/footer removed | Refused until the licence page is read (site was in maintenance on 2026-11-21 and 2026-11-22) |
 | `gutenberg-starter-es` | es | Public domain (US), PG header/footer removed | Same |
 
-Still to be found and licence-checked before use: general text for ru, bg, pt and the
-second-wave languages (de, fr, it, pl, tr), then ar and zh.
+Known limits of this first corpus: the text is official and parliamentary language (no
+everyday or market vocabulary), Russian comes from one source only, and Turkish has no
+source yet. Still to be added: our own texts and trading examples, books once the
+Project Gutenberg licence page can be read, and a licence-checked source for Turkish.
