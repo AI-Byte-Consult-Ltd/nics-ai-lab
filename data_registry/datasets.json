@@ -1,129 +1,188 @@
 [
-  {
-    "dataset_id": "tinyshakespeare-v1",
-    "name": "Tiny Shakespeare",
-    "source": "karpathy/char-rnn (GitHub mirror of Shakespeare's complete works)",
-    "source_url": "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt",
-    "version": "1",
-    "acquisition_date": "2026-08-05T20:30:46.449379+00:00",
-    "license": "Public Domain (William Shakespeare, d. 1616)",
-    "permitted_use": "training, evaluation, redistribution",
-    "commercial_use": true,
-    "personal_data_risk": "none",
-    "copyright_risk": "none -- public domain source text",
-    "checksum_sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
-    "size_bytes": 1115394,
-    "notes": "First NICS Text dataset: small (~1.1MB), unambiguously licensed, used to validate the from-scratch tokenizer + training pipeline end to end (nics-text-nano). Not intended to produce a broadly capable model on its own."
+ {
+  "dataset_id": "tinyshakespeare-v1",
+  "name": "Tiny Shakespeare",
+  "source": "karpathy/char-rnn (GitHub mirror of Shakespeare's complete works)",
+  "source_url": "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt",
+  "version": "1",
+  "acquisition_date": "2026-08-05T20:30:46.449379+00:00",
+  "license": "Public Domain (William Shakespeare, d. 1616)",
+  "permitted_use": "training, evaluation, redistribution",
+  "commercial_use": true,
+  "personal_data_risk": "none",
+  "copyright_risk": "none -- public domain source text",
+  "checksum_sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
+  "size_bytes": 1115394,
+  "notes": "First NICS Text dataset: small (~1.1MB), unambiguously licensed, used to validate the from-scratch tokenizer + training pipeline end to end (nics-text-nano). Not intended to produce a broadly capable model on its own."
+ },
+ {
+  "dataset_id": "fashion-mnist-v1",
+  "name": "Fashion-MNIST",
+  "source": "Zalando Research (zalandoresearch/fashion-mnist)",
+  "source_url": [
+   "https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/train-images-idx3-ubyte.gz",
+   "https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/train-labels-idx1-ubyte.gz",
+   "https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/t10k-images-idx3-ubyte.gz",
+   "https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/t10k-labels-idx1-ubyte.gz"
+  ],
+  "version": "1",
+  "acquisition_date": "2026-08-05T21:25:33.751180+00:00",
+  "license": "MIT (Zalando SE, 2017)",
+  "permitted_use": "training, evaluation, redistribution",
+  "commercial_use": true,
+  "personal_data_risk": "none",
+  "copyright_risk": "none -- images are Zalando's own product catalog photographs, MIT-licensed by the copyright holder (not a third-party scrape)",
+  "checksum_sha256": {
+   "train-images-idx3-ubyte.gz": "3aede38d61863908ad78613f6a32ed271626dd12800ba2636569512369268a84",
+   "train-labels-idx1-ubyte.gz": "a04f17134ac03560a47e3764e11b92fc97de4d1bfaf8ba1a3aa29af54cc90845",
+   "t10k-images-idx3-ubyte.gz": "346e55b948d973a97e58d2351dde16a484bd415d4595297633bb08f03db6a073",
+   "t10k-labels-idx1-ubyte.gz": "67da17c76eaffca5446c3361aaab5c3cd6d1c2608764d35dfb1850b086bf8dd5"
   },
-  {
-    "dataset_id": "fashion-mnist-v1",
-    "name": "Fashion-MNIST",
-    "source": "Zalando Research (zalandoresearch/fashion-mnist)",
-    "source_url": [
-      "https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/train-images-idx3-ubyte.gz",
-      "https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/train-labels-idx1-ubyte.gz",
-      "https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/t10k-images-idx3-ubyte.gz",
-      "https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/t10k-labels-idx1-ubyte.gz"
-    ],
-    "version": "1",
-    "acquisition_date": "2026-08-05T21:25:33.751180+00:00",
-    "license": "MIT (Zalando SE, 2017)",
-    "permitted_use": "training, evaluation, redistribution",
-    "commercial_use": true,
-    "personal_data_risk": "none",
-    "copyright_risk": "none -- images are Zalando's own product catalog photographs, MIT-licensed by the copyright holder (not a third-party scrape)",
-    "checksum_sha256": {
-      "train-images-idx3-ubyte.gz": "3aede38d61863908ad78613f6a32ed271626dd12800ba2636569512369268a84",
-      "train-labels-idx1-ubyte.gz": "a04f17134ac03560a47e3764e11b92fc97de4d1bfaf8ba1a3aa29af54cc90845",
-      "t10k-images-idx3-ubyte.gz": "346e55b948d973a97e58d2351dde16a484bd415d4595297633bb08f03db6a073",
-      "t10k-labels-idx1-ubyte.gz": "67da17c76eaffca5446c3361aaab5c3cd6d1c2608764d35dfb1850b086bf8dd5"
-    },
-    "size_bytes": 30878645,
-    "notes": "10-class grayscale clothing image classification dataset, 28x28px, 60,000 train / 10,000 test images. Used to train nics-vision-nano end to end. checksum_sha256 and size_bytes are per-file (4 idx-ubyte.gz files); size_bytes total is the sum of all four."
+  "size_bytes": 30878645,
+  "notes": "10-class grayscale clothing image classification dataset, 28x28px, 60,000 train / 10,000 test images. Used to train nics-vision-nano end to end. checksum_sha256 and size_bytes are per-file (4 idx-ubyte.gz files); size_bytes total is the sum of all four."
+ },
+ {
+  "dataset_id": "nics-market-v1",
+  "name": "NICS market data (own)",
+  "source": "AI Byte Consult Ltd own systems: Vantage MT5 bridge candles (broker_market_candles) and NICS scanner signals with outcomes (signals)",
+  "source_url": "n8n workflow [41 LAB] Market Data Export (private, key-protected)",
+  "version": "1 (snapshots versioned by export date, data/market/<YYYY-MM-DD>/)",
+  "acquisition_date": "per snapshot, see its manifest.json",
+  "license": "Proprietary, owned by AI Byte Consult Ltd; broker price data used under the Vantage account terms for internal analysis",
+  "permitted_use": "internal training and evaluation; not redistributed",
+  "commercial_use": true,
+  "personal_data_risk": "none -- prices and signal levels only, no user identifiers exported",
+  "copyright_risk": "low -- own records; raw broker data is not republished",
+  "checksum_sha256": "per snapshot, in manifest.json",
+  "size_bytes": "per snapshot",
+  "notes": "Training data for NICS Trading. Only our own data, per Alexander (2026-11-18). Every snapshot's sha256 is copied into the experiment manifest so a run can be traced to its exact data. Superseded by nics-market-v2 (0.4.0)."
+ },
+ {
+  "dataset_id": "nics-market-v2",
+  "name": "NICS trading data (own), all sources",
+  "source": "AI Byte Consult Ltd own systems: Vantage MT5 bridge candles on every timeframe (broker_market_candles: 1min, 5min, 15min, 1h, 4h; 27 instruments), every NICS scanner signal with levels and recorded result (signals, all modes, strong and weak), signal lifecycle events (signal_events), shadow strategies (swing_shadow_trades), EA manual signals (manual_algo_signals), economic calendar (economic_events, ForexFactory via [19 NEWS]), trade journal, instrument specs",
+  "source_url": "n8n workflow [41 LAB] Market Data Export (private, key-protected, read-only)",
+  "version": "2 (snapshots versioned by export date, data/market/<YYYY-MM-DD>/)",
+  "acquisition_date": "per snapshot, see its manifest.json",
+  "license": "Proprietary, owned by AI Byte Consult Ltd; broker price data used under the Vantage account terms for internal analysis",
+  "permitted_use": "internal training and evaluation; not redistributed",
+  "commercial_use": true,
+  "personal_data_risk": "none -- prices, signal levels and results only; no user identifiers exported",
+  "copyright_risk": "low -- own records; raw broker data is not republished",
+  "checksum_sha256": "per snapshot, in manifest.json",
+  "size_bytes": "per snapshot",
+  "notes": "Weak and on-request signals are included for internal training only; they never enter any public statistic. The economic calendar only covers 2026-10-20 onward, so it is exported but not yet used as a model feature (it would differ between train and test periods)."
+ },
+ {
+  "dataset_id": "nics-public-history-v1",
+  "name": "Public D1/W1 market history",
+  "source": "Kraken public OHLC API (BTC/USD, ETH/USD); Yahoo Finance chart API (indices, gold/silver/Brent futures, US stocks, FX; USD/CNH via onshore CNY=X)",
+  "source_url": [
+   "https://api.kraken.com/0/public/OHLC",
+   "https://query1.finance.yahoo.com/v8/finance/chart/"
+  ],
+  "version": "1 (per snapshot: public_candles.csv)",
+  "acquisition_date": "per snapshot, see manifest.json public_history",
+  "license": "Third-party public market data; Yahoo terms do not permit redistribution. Used for internal research/training only, nothing republished.",
+  "permitted_use": "internal training and evaluation; not redistributed",
+  "commercial_use": "unclear -- review before shipping a model trained with it commercially, or train with --no-public",
+  "personal_data_risk": "none",
+  "copyright_risk": "medium -- third-party terms; raw data is never republished",
+  "checksum_sha256": "per snapshot, in manifest.json",
+  "size_bytes": "per snapshot",
+  "notes": "Not our broker's prices (futures vs spot, index vs CFD). Features are scale-free (ATR units), so the model learns market shape from them. Every row keeps its source. Added on Alexander's request (2026-11-18) to train on all available public data we use."
+ },
+ {
+  "dataset_id": "nics-dukascopy-history-v1",
+  "name": "Public H1/H4 market history (Dukascopy)",
+  "source": "Dukascopy historical data feed, monthly hourly candle files (FX, XAU, XAG, Brent, indices, BTC)",
+  "source_url": [
+   "https://datafeed.dukascopy.com/datafeed/"
+  ],
+  "version": "1 (per snapshot: rows with source public:dukascopy:* in public_candles.csv)",
+  "acquisition_date": "per snapshot, see manifest.json dukascopy_history",
+  "license": "Third-party public market data. Used for internal research/training only, nothing republished.",
+  "permitted_use": "internal training and evaluation; not redistributed",
+  "commercial_use": "unclear -- review before shipping a model trained with it commercially, or train with --no-public",
+  "personal_data_risk": "none",
+  "copyright_risk": "medium -- third-party terms; raw data is never republished",
+  "checksum_sha256": "per snapshot, in manifest.json",
+  "size_bytes": "per snapshot",
+  "notes": "Since 2008. High/low columns and price scale detected from the data and checked against our broker close (15 % tolerance). Methodology setups on this history are training-only. Downloads are paced (~1 request/s), cached, and stop for the night after repeated 429/503."
+ },
+ {
+  "dataset_id": "nics-own-trades-v1",
+  "name": "Our closed MT5 positions",
+  "source": "MetaTrader 5 terminal trade history of our accounts (prop, Vantage, algo), read locally with the official MetaTrader5 Python package",
+  "source_url": "local terminal, scripts/fetch_mt5_history.py",
+  "version": "1 (per snapshot: own_trades_<label>.csv)",
+  "acquisition_date": "per snapshot, see manifest.json own_trades",
+  "license": "Proprietary, our own trading records",
+  "permitted_use": "internal training and evaluation; not redistributed",
+  "commercial_use": true,
+  "personal_data_risk": "low -- account number not stored; account label only",
+  "copyright_risk": "none",
+  "checksum_sha256": "per snapshot, in manifest.json",
+  "size_bytes": "per snapshot",
+  "notes": "Positions without SL and TP at open are kept in the file but cannot become labelled setups."
+ },
+ {
+  "dataset_id": "smithsonian-nmnh-minsci-v1",
+  "name": "Smithsonian NMNH Department of Mineral Sciences, Open Access images",
+  "source": "Smithsonian Open Access bulk metadata (public S3 bucket smithsonian-open-access, unit nmnhminsci)",
+  "source_url": "https://smithsonian-open-access.s3-us-west-2.amazonaws.com/metadata/edan/nmnhminsci/index.txt",
+  "version": "1",
+  "acquisition_date": "2026-11-22",
+  "license": "CC0 1.0 (only images whose usage.access is CC0 are kept, checked per image)",
+  "permitted_use": "training, evaluation, redistribution",
+  "commercial_use": true,
+  "personal_data_risk": "none (museum specimens)",
+  "copyright_risk": "none -- CC0 dedication by the Smithsonian Institution",
+  "checksum_sha256": {
+   "manifest_2026-11-22 (smithsonian + nhm rows)": "9abd38a2e2d40e17511ab274bfb6a6e02fd1fc5ffa4cd62d1e6ff2c00ceaff10"
   },
-  {
-    "dataset_id": "nics-market-v1",
-    "name": "NICS market data (own)",
-    "source": "AI Byte Consult Ltd own systems: Vantage MT5 bridge candles (broker_market_candles) and NICS scanner signals with outcomes (signals)",
-    "source_url": "n8n workflow [41 LAB] Market Data Export (private, key-protected)",
-    "version": "1 (snapshots versioned by export date, data/market/<YYYY-MM-DD>/)",
-    "acquisition_date": "per snapshot, see its manifest.json",
-    "license": "Proprietary, owned by AI Byte Consult Ltd; broker price data used under the Vantage account terms for internal analysis",
-    "permitted_use": "internal training and evaluation; not redistributed",
-    "commercial_use": true,
-    "personal_data_risk": "none -- prices and signal levels only, no user identifiers exported",
-    "copyright_risk": "low -- own records; raw broker data is not republished",
-    "checksum_sha256": "per snapshot, in manifest.json",
-    "size_bytes": "per snapshot",
-    "notes": "Training data for NICS Trading. Only our own data, per Alexander (2026-11-18). Every snapshot's sha256 is copied into the experiment manifest so a run can be traced to its exact data. Superseded by nics-market-v2 (0.4.0)."
+  "size_bytes": null,
+  "notes": "28,734 CC0 images on 2026-11-22, 27,202 mapped to a NICS Vision Geo class (22,388 of them meteorite photos, capped per class and per specimen at build time). Museum photographs: clean specimens on plain backgrounds, unlike field photos. Metadata is read into data/geo/manifest.jsonl (one row per image with licence, attribution, record link, specimen id); images are downloaded and re-encoded at 192 px without EXIF into data/geo/cache. Checksums: sha256 of the manifest per fetch (below) and of every cached image in the build summary.",
+  "used_by": [
+   "nics-vision-geo-micro"
+  ]
+ },
+ {
+  "dataset_id": "nhm-london-mineralogy-v1",
+  "name": "Natural History Museum London, mineralogy collection specimens with images",
+  "source": "NHM Data Portal, collection specimens resource, collectionCode MIN, records with images",
+  "source_url": "https://data.nhm.ac.uk/api/3/action/datastore_search?resource_id=05ff2255-c38a-40c9-b657-4ccb55ab2feb",
+  "version": "1",
+  "acquisition_date": "2026-11-22",
+  "license": "CC BY 4.0 per image (checked per image; attribution to creator and The Trustees of the Natural History Museum, London kept per row)",
+  "permitted_use": "training, evaluation, redistribution with attribution",
+  "commercial_use": true,
+  "personal_data_risk": "none (museum specimens)",
+  "copyright_risk": "low -- CC BY 4.0 issued by the rights holder; attribution must be kept",
+  "checksum_sha256": {
+   "manifest_2026-11-22 (smithsonian + nhm rows)": "9abd38a2e2d40e17511ab274bfb6a6e02fd1fc5ffa4cd62d1e6ff2c00ceaff10"
   },
-  {
-    "dataset_id": "nics-market-v2",
-    "name": "NICS trading data (own), all sources",
-    "source": "AI Byte Consult Ltd own systems: Vantage MT5 bridge candles on every timeframe (broker_market_candles: 1min, 5min, 15min, 1h, 4h; 27 instruments), every NICS scanner signal with levels and recorded result (signals, all modes, strong and weak), signal lifecycle events (signal_events), shadow strategies (swing_shadow_trades), EA manual signals (manual_algo_signals), economic calendar (economic_events, ForexFactory via [19 NEWS]), trade journal, instrument specs",
-    "source_url": "n8n workflow [41 LAB] Market Data Export (private, key-protected, read-only)",
-    "version": "2 (snapshots versioned by export date, data/market/<YYYY-MM-DD>/)",
-    "acquisition_date": "per snapshot, see its manifest.json",
-    "license": "Proprietary, owned by AI Byte Consult Ltd; broker price data used under the Vantage account terms for internal analysis",
-    "permitted_use": "internal training and evaluation; not redistributed",
-    "commercial_use": true,
-    "personal_data_risk": "none -- prices, signal levels and results only; no user identifiers exported",
-    "copyright_risk": "low -- own records; raw broker data is not republished",
-    "checksum_sha256": "per snapshot, in manifest.json",
-    "size_bytes": "per snapshot",
-    "notes": "Weak and on-request signals are included for internal training only; they never enter any public statistic. The economic calendar only covers 2026-10-20 onward, so it is exported but not yet used as a model feature (it would differ between train and test periods)."
-  },
-  {
-    "dataset_id": "nics-public-history-v1",
-    "name": "Public D1/W1 market history",
-    "source": "Kraken public OHLC API (BTC/USD, ETH/USD); Yahoo Finance chart API (indices, gold/silver/Brent futures, US stocks, FX; USD/CNH via onshore CNY=X)",
-    "source_url": [
-      "https://api.kraken.com/0/public/OHLC",
-      "https://query1.finance.yahoo.com/v8/finance/chart/"
-    ],
-    "version": "1 (per snapshot: public_candles.csv)",
-    "acquisition_date": "per snapshot, see manifest.json public_history",
-    "license": "Third-party public market data; Yahoo terms do not permit redistribution. Used for internal research/training only, nothing republished.",
-    "permitted_use": "internal training and evaluation; not redistributed",
-    "commercial_use": "unclear -- review before shipping a model trained with it commercially, or train with --no-public",
-    "personal_data_risk": "none",
-    "copyright_risk": "medium -- third-party terms; raw data is never republished",
-    "checksum_sha256": "per snapshot, in manifest.json",
-    "size_bytes": "per snapshot",
-    "notes": "Not our broker's prices (futures vs spot, index vs CFD). Features are scale-free (ATR units), so the model learns market shape from them. Every row keeps its source. Added on Alexander's request (2026-11-18) to train on all available public data we use."
-  },
-  {
-    "dataset_id": "nics-dukascopy-history-v1",
-    "name": "Public H1/H4 market history (Dukascopy)",
-    "source": "Dukascopy historical data feed, monthly hourly candle files (FX, XAU, XAG, Brent, indices, BTC)",
-    "source_url": [
-      "https://datafeed.dukascopy.com/datafeed/"
-    ],
-    "version": "1 (per snapshot: rows with source public:dukascopy:* in public_candles.csv)",
-    "acquisition_date": "per snapshot, see manifest.json dukascopy_history",
-    "license": "Third-party public market data. Used for internal research/training only, nothing republished.",
-    "permitted_use": "internal training and evaluation; not redistributed",
-    "commercial_use": "unclear -- review before shipping a model trained with it commercially, or train with --no-public",
-    "personal_data_risk": "none",
-    "copyright_risk": "medium -- third-party terms; raw data is never republished",
-    "checksum_sha256": "per snapshot, in manifest.json",
-    "size_bytes": "per snapshot",
-    "notes": "Since 2008. High/low columns and price scale detected from the data and checked against our broker close (15 % tolerance). Methodology setups on this history are training-only. Downloads are paced (~1 request/s), cached, and stop for the night after repeated 429/503."
-  },
-  {
-    "dataset_id": "nics-own-trades-v1",
-    "name": "Our closed MT5 positions",
-    "source": "MetaTrader 5 terminal trade history of our accounts (prop, Vantage, algo), read locally with the official MetaTrader5 Python package",
-    "source_url": "local terminal, scripts/fetch_mt5_history.py",
-    "version": "1 (per snapshot: own_trades_<label>.csv)",
-    "acquisition_date": "per snapshot, see manifest.json own_trades",
-    "license": "Proprietary, our own trading records",
-    "permitted_use": "internal training and evaluation; not redistributed",
-    "commercial_use": true,
-    "personal_data_risk": "low -- account number not stored; account label only",
-    "copyright_risk": "none",
-    "checksum_sha256": "per snapshot, in manifest.json",
-    "size_bytes": "per snapshot",
-    "notes": "Positions without SL and TP at open are kept in the file but cannot become labelled setups."
-  }
+  "size_bytes": null,
+  "notes": "5,038 images on 2026-11-22, 3,198 mapped to a class. Mostly rocks (a large decorative/building stone set: marble, limestone, sandstone, granite); containers, slides and analysis samples are filtered out by name. Metadata is read into data/geo/manifest.jsonl (one row per image with licence, attribution, record link, specimen id); images are downloaded and re-encoded at 192 px without EXIF into data/geo/cache. Checksums: sha256 of the manifest per fetch (below) and of every cached image in the build summary.",
+  "used_by": [
+   "nics-vision-geo-micro"
+  ]
+ },
+ {
+  "dataset_id": "wikimedia-commons-geo-v1",
+  "name": "Wikimedia Commons rock and mineral photos (planned, laptop)",
+  "source": "Wikimedia Commons API, files directly in the categories listed per class in src/nics/geo/taxonomy.py",
+  "source_url": "https://commons.wikimedia.org/w/api.php",
+  "version": "1",
+  "acquisition_date": null,
+  "license": "per file from extmetadata: CC0, public domain, CC BY, CC BY-SA kept; NC/ND and unknown refused. CC BY-SA rows are flagged and can be excluded with data.exclude_share_alike",
+  "permitted_use": "training with attribution (per file)",
+  "commercial_use": true,
+  "personal_data_risk": "low -- some photos may show people; to be reviewed before a model ships",
+  "copyright_risk": "medium -- licences are stated by uploaders; per-file attribution kept; share-alike scope for model weights to be confirmed by counsel",
+  "checksum_sha256": null,
+  "size_bytes": null,
+  "notes": "Not fetched yet: on 2026-11-22 the cloud egress got HTTP 429 from Commons on the first request. The reader is unit-tested on recorded responses; first live run planned from the laptop (scripts/geo_fetch.py --sources commons).",
+  "used_by": []
+ }
 ]

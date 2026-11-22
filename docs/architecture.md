@@ -99,7 +99,8 @@ The repository has a single `VERSION` file (semantic versioning) and a
 Training runs on CPU only today (no discrete GPU on either the sandbox or
 the current Windows laptop -- confirmed via hardware audit: Intel Core
 Ultra 5 125H, integrated graphics only). This is why:
-- `nics-vision-*` uses a small CNN rather than a Vision Transformer.
+- `nics-vision-*` uses a small CNN rather than a Vision Transformer
+  (`nics-vision-geo-*`: GeoNet, inverted-residual blocks, about 1 M parameters).
 - `nano` configs are deliberately tiny (hundreds of thousands of
   parameters, not millions+) -- proof-of-pipeline scale, not
   capability-scale.

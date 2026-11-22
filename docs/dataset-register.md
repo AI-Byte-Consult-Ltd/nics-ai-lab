@@ -116,6 +116,25 @@ Our closed positions from the MT5 terminal (prop, Vantage, algo accounts),
 read locally by `scripts/fetch_mt5_history.py`. The account number is not
 stored.
 
+## NICS Vision Geo (rock and mineral photos, added 2026-11-22)
+
+New sources for the from-scratch geology model `nics-vision-geo-*` (the 2026-08
+`fashion-mnist-v1` run is not reused). The licence is checked per image by
+`src/nics/geo/licence.py`, not per source: CC0, public domain, CC BY and CC BY-SA pass
+(BY-SA flagged, one switch excludes it); NC, ND, "all rights reserved" and anything
+unparseable are refused. Every manifest row keeps the attribution and a link to the
+specimen record. Photos of one specimen always share one split.
+
+| Source | Images (2026-11-22) | Licence | Status |
+|---|---|---|---|
+| `smithsonian-nmnh-minsci-v1` | 28,734 CC0 images, 27,202 labelled (22,388 meteorites) | CC0 | In use |
+| `nhm-london-mineralogy-v1` | 5,038 images, 3,198 labelled (mostly rocks) | CC BY 4.0 | In use |
+| `wikimedia-commons-geo-v1` | not fetched (cloud got HTTP 429) | per file, CC0 / BY / BY-SA | Reader ready, first run from the laptop |
+| Photos sent by our users | none yet | only with explicit opt-in consent in the terms | After the product launch |
+
+Not eligible: mineral reference sites and contest datasets whose photos are copyrighted
+by their authors or scraped without a stated licence.
+
 ## Planned
 
 No further datasets are registered yet.

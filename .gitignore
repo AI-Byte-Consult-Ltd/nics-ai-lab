@@ -23,3 +23,6 @@ __pycache__/
 # NICS Trading: self-learning runs, champion, shadow predictions stay on the laptop
 experiments/trading/
 experiments/text/nics-text-micro/
+
+# NICS Vision Geo: runs and weights stay on the laptop
+experiments/vision/nics-vision-geo-*/
