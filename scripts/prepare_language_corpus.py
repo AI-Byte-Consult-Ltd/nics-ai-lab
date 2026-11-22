@@ -23,6 +23,8 @@ Source kinds:
   opus_mono  one gzip file with one sentence per line (United Nations Parallel Corpus,
              Europarl). The file is read as a stream and reading stops at max_text_bytes,
              so only the needed part is downloaded and nothing raw is kept on disk.
+  github_md  Markdown files of one folder of a public GitHub repository (downloaded as
+             one zip, nothing raw is kept). Used for texts the company owns itself.
 """
 import argparse
 import gzip
@@ -151,6 +153,26 @@ def docs_opus_mono(source: dict):
         yield from docs_from_lines(picked, source["lang"], int(source["max_text_bytes"]))
 
 
+def docs_github_md(source: dict):
+    """Every .md file directly inside source["subdir"] of the repository zip at source["url"],
+    except names containing one of source["exclude"]."""
+    import io
+    import zipfile
+    req = urllib.request.Request(source["url"], headers={"User-Agent": "corpus-builder/1.0"})
+    with urllib.request.urlopen(req, timeout=180) as resp:
+        archive = zipfile.ZipFile(io.BytesIO(resp.read()))
+    subdir = source.get("subdir", "").strip("/")
+    skip = [x.lower() for x in source.get("exclude", [])]
+    for number, info in enumerate(sorted(archive.infolist(), key=lambda i: i.filename), 1):
+        parts = info.filename.split("/")[1:]  # the first part is "<repo>-<branch>"
+        folder, name = "/".join(parts[:-1]), parts[-1] if parts else ""
+        if info.is_dir() or folder != subdir or not name.lower().endswith(".md"):
+            continue
+        if any(x in name.lower() for x in skip):
+            continue
+        yield source["lang"], f"doc-{number:04d}", archive.read(info).decode("utf-8", errors="replace")
+
+
 def is_built(source: dict, registry: list) -> bool:
     entry = next((d for d in registry if d["dataset_id"] == f"language-{source['source_id']}"), None)
     return bool(entry) and all((TEXT / f["lang"] / source["source_id"] / f"{f['doc']}.txt").exists() for f in entry["files"])
@@ -170,6 +192,8 @@ def build_source(source: dict, delay: float) -> dict | None:
         docs = docs_gutenberg(source, delay)
     elif kind == "opus_mono":
         docs = docs_opus_mono(source)
+    elif kind == "github_md":
+        docs = docs_github_md(source)
     elif kind == "local":
         docs = docs_local(source)
     else:
@@ -237,7 +261,7 @@ def main() -> None:
             if wanted:
                 sys.exit(1)
             continue
-        if source["kind"] == "opus_mono" and not args.force and is_built(source, registry):
+        if source["kind"] in ("opus_mono", "github_md") and not args.force and is_built(source, registry):
             print(f"Already built: {sid} (use --force to download it again)")
             continue
         print(f"Building {sid} ...", flush=True)

@@ -14,6 +14,17 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.16.0] - 2026-11-22
+
+### Added
+- Corpus: Alexander Lunin's own novel, Russian original and English edition
+  (`own-book-ru`, `own-book-en`, 59 chapters each, about 2.7 MB and 1.6 MB of text).
+  Author-owned, permission given 2026-11-22. First literary text in the corpus.
+- Source kind `github_md`: Markdown files of one folder of a public GitHub repository.
+- `language_auto.py` notices new texts: tokens are rebuilt once, the tokenizer and the
+  checkpoint stay, training continues. A source that fails to download is retried on
+  the next run without rebuilding anything.
+
 ## [0.15.1] - 2026-11-22
 
 ### Added

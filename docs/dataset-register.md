@@ -142,6 +142,7 @@ checksum of every document. Text written by bot users is never a source.
 | `un-corpus-ru`, `-en`, `-es` | ru, en, es | United Nations Parallel Corpus v1.0: no warranty, the United Nations must be acknowledged as the source, "no other restrictions apply" (page read 2026-11-22) | Usable, first training set |
 | `europarl-bg`, `-pt`, `-es`, `-en` | bg, pt, es, en | Europarl: "We are not aware of any copyright restrictions of the material" (page read 2026-11-22) | Usable, first training set |
 | `europarl-de`, `-fr`, `-it`, `-pl`, `un-corpus-ar`, `-zh` | de, fr, it, pl, ar, zh | Same two licences | Usable; small samples for the shared tokenizer only, not in the first training set |
+| `own-book-ru`, `own-book-en` | ru, en | Own work: novel by Alexander Lunin (repository `the-book`), permission of the author given 2026-11-22 | Usable, in the training set; the only literary text so far |
 | `gutenberg-starter-en` | en | Public domain (US), PG header/footer removed | Refused until the licence page is read (site was in maintenance on 2026-11-21 and 2026-11-22) |
 | `gutenberg-starter-es` | es | Public domain (US), PG header/footer removed | Same |
 

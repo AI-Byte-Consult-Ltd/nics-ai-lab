@@ -94,13 +94,33 @@ def step(name: str, *args: str) -> None:
         raise RuntimeError(f"{name} failed with code {code}; details in logs\\language.txt")
 
 
+def usable_sources() -> list[str]:
+    """Ids of the first-wave sources the licence gate lets through, as registered now."""
+    from prepare_language_corpus import SOURCES, refusal
+    sources = json.loads(SOURCES.read_text(encoding="utf-8"))
+    return sorted(s["source_id"] for s in sources if s["lang"] in FIRST_WAVE and not refusal(s))
+
+
+def present_sources() -> list[str]:
+    """Ids of the sources whose text is on disk."""
+    return sorted({d.name for lang in FIRST_WAVE if (TEXT / lang).is_dir()
+                   for d in (TEXT / lang).iterdir() if d.is_dir() and any(d.glob("*.txt"))})
+
+
 def prepare(cfg, push_report: bool) -> None:
     tokenizer = ROOT / cfg["data"]["tokenizer"]
     tokens_dir = ROOT / cfg["data"]["tokens_dir"]
-    if (tokens_dir / "train.bin").exists() and (tokens_dir / "manifest.json").exists() and tokenizer.exists():
+    stamp = tokens_dir / "sources.json"
+    have = json.loads(stamp.read_text(encoding="utf-8")) if stamp.exists() else None
+    ready = (tokens_dir / "train.bin").exists() and (tokens_dir / "manifest.json").exists() and tokenizer.exists()
+    if ready and have == usable_sources():
         return
-    report("подготовка", "Ноутбук скачивает тексты и готовит их к обучению.", push_report)
-    step("corpus", "scripts/prepare_language_corpus.py")
+    if not ready:
+        report("подготовка", "Ноутбук скачивает тексты и готовит их к обучению.", push_report)
+    step("corpus", "scripts/prepare_language_corpus.py")  # sources already on disk are skipped
+    present = present_sources()
+    if ready and have == present:
+        return  # a registered source could not be downloaded this time: train on what there is, retry next run
     sizes = lang_bytes()
     missing = [lang for lang in FIRST_WAVE if sizes.get(lang, 0) < 5_000_000]
     if missing:
@@ -109,9 +129,15 @@ def prepare(cfg, push_report: bool) -> None:
         # every language gets the same share, so the smallest second-wave sample sets the budget
         step("tokenizer", "scripts/train_tokenizer.py", "--vocab-size", str(cfg["model"]["vocab_size"]),
              "--max-mb-per-lang", "16", "--out", str(tokenizer))
+    if ready:
+        # texts were added: the tokenizer stays, so the model continues from its checkpoint;
+        # only the tokens are built again
+        log(f"texts changed: {have} -> {present}; tokens are rebuilt, tokenizer and checkpoint stay")
+        (tokens_dir / "manifest.json").unlink()  # a failed rebuild is then retried on the next run
     step("examples", "scripts/make_language_examples.py")
     step("tokens", "scripts/encode_corpus.py", "--tokenizer", str(tokenizer), "--out", str(tokens_dir),
          "--langs", ",".join(FIRST_WAVE))
+    stamp.write_text(json.dumps(present), encoding="utf-8")
 
 
 def main() -> None:
