@@ -38,6 +38,23 @@ sys.path.insert(0, str(ROOT / "src"))
 from nics.common.config import load_config  # noqa: E402
 
 
+def start_language_night(now: datetime | None = None) -> bool:
+    """After the nightly trading cycle the laptop is free: give the rest of the night to NICS Language.
+
+    Runs only at night (a cycle started by hand during the day never starts it) and never
+    affects the trading cycle: any failure here is only logged. NICS_LANGUAGE_AUTO=0 turns
+    it off, NICS_LANGUAGE_UNTIL changes the stop time (default 08:00 local)."""
+    now = now or datetime.now()
+    if os.environ.get("NICS_LANGUAGE_AUTO", "1") == "0" or not (3 <= now.hour < 7):
+        return False
+    try:
+        subprocess.run([sys.executable, str(ROOT / "scripts" / "language_auto.py"),
+                        "--until", os.environ.get("NICS_LANGUAGE_UNTIL", "08:00")], cwd=ROOT)
+    except Exception as e:  # noqa: BLE001
+        print(f"language night not started: {e}")
+    return True
+
+
 def pid_alive(pid: int) -> bool:
     """True if a process with this PID is still running (a lock left by a laptop that was
     switched off mid-cycle points to a dead PID and is ignored)."""
@@ -255,6 +272,7 @@ def main() -> None:
         lock.unlink(missing_ok=True)
         logf.close()
     print(json.dumps(report, indent=2))
+    start_language_night()
     if "error" in report:
         sys.exit(1)
 

@@ -14,6 +14,35 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.12.0] - 2026-11-22
+
+NICS Language: first training corpus and unattended nightly training on the laptop.
+
+### Added
+- Corpus sources with licences read on 2026-11-22: United Nations Parallel Corpus v1.0
+  (ru, en, es; small samples of ar, zh) and Europarl v8 (bg, pt, es, en; small samples of
+  de, fr, it, pl). New source kind `opus_mono` in `scripts/prepare_language_corpus.py`:
+  the file is read as a stream and reading stops at the size limit, repeated and very
+  short lines are dropped, nothing raw is kept on disk.
+- `scripts/language_auto.py`: does whatever is missing (corpus, tokenizer, token files)
+  and then trains nics-text-micro until a stop time; an interrupted night continues the
+  next night. `scripts/language_night.py`: one training session with a report.
+  `scripts\windows\language_train.bat` for a run by hand.
+- The nightly NICS Trading cycle (`scripts/self_learn.py`) now gives the rest of the night
+  to NICS Language (until 08:00 local time; only for cycles that end between 03:00 and
+  07:00). `NICS_LANGUAGE_AUTO=0` turns it off, `NICS_LANGUAGE_UNTIL` moves the stop time.
+- Every stage reports its status to the private dashboard (model `nics-language`).
+- `scripts/encode_corpus.py --langs`: the tokenizer learns all languages that have text,
+  the first model is trained on ru, en, es, bg, pt.
+
+### Changed
+- The corpus provenance file moved to `data/processed/language/datasets.json` (not
+  tracked), so building the corpus on the laptop cannot block `git pull`.
+
+### Known limits
+- The first corpus is official and parliamentary language only; Project Gutenberg is
+  still refused (licence page unreachable), Turkish has no source yet.
+
 ## [0.11.0] - 2026-11-22
 
 NICS Language, stages 0 and 1 of the from-scratch plan. Nothing is trained yet and no
