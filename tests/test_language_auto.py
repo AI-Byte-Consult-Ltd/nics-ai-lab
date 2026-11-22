@@ -87,7 +87,9 @@ def test_journal_examples_are_valid_and_filled_safely():
                     for note in (True, False):
                         for _ in range(30):
                             text = ex.compose(lang, direction, targets, conf, note, rng)
-                            assert ex.check(text, targets, conf, note, lang) == [], (lang, text)
+                            assert ex.check(text, targets, conf, note, lang, direction) == [], (lang, text)
+                            other = "sell" if direction == "buy" else "buy"
+                            assert ex.check(text, targets, conf, note, lang, other), (lang, text)
                             assert "{" not in text and "|}" not in text
     text = ex.compose("ru", "buy", 2, True, True, rng)
     # the checker refuses what the model must never do

@@ -444,14 +444,37 @@ def vocabulary(lang: str) -> frozenset[str]:
     return _VOCABULARY[lang]
 
 
-def check(text: str, targets: int, has_conf: bool, has_note: bool, lang: str | None = None) -> list[str]:
+_DIRECTION_WORDS: dict[tuple[str, str], frozenset[str]] = {}
+
+
+def direction_words(lang: str, direction: str) -> frozenset[str]:
+    """Words our phrases use only for this direction (buy or sell) in this language."""
+    key = (lang, direction)
+    if key not in _DIRECTION_WORDS:
+        sides: dict[str, set[str]] = {"buy": set(), "sell": set()}
+        common: set[str] = set()  # words used outside the buy|sell choices say nothing about the side
+        for variants in BANK[lang].values():
+            for variant in variants:
+                for match in _DIR.finditer(variant):
+                    sides["buy"].update(w.lower() for w in _WORD.findall(match.group(1)))
+                    sides["sell"].update(w.lower() for w in _WORD.findall(match.group(2)))
+                rest = _ALLOWED_TAGS.sub(" ", _SLOT.sub(" ", _DIR.sub(" ", variant)))
+                common.update(w.lower() for w in _WORD.findall(rest))
+        _DIRECTION_WORDS[(lang, "buy")] = frozenset(sides["buy"] - sides["sell"] - common)
+        _DIRECTION_WORDS[(lang, "sell")] = frozenset(sides["sell"] - sides["buy"] - common)
+    return _DIRECTION_WORDS[key]
+
+
+def check(text: str, targets: int, has_conf: bool, has_note: bool, lang: str | None = None,
+          direction: str | None = None) -> list[str]:
     """Why a generated post must not be published; an empty list means it may.
 
     Checked by code, never by the model: exact slots, no digits (every number comes from
     a slot), only <b>/<i> tags, sane length and, when lang is given, a closed vocabulary:
     every word must be one our own phrases use in that language, so a post in another
-    language, a mixed one or one with an invented word is refused. A failed post is
-    replaced by the template."""
+    language, a mixed one or one with an invented word is refused. With direction given,
+    a post that uses a word of the opposite side (a sale described for a buy) is refused
+    too. A failed post is replaced by the template."""
     problems = []
     found: dict[str, int] = {}
     for token in _SLOT_TOKEN.findall(text):
@@ -475,6 +498,13 @@ def check(text: str, targets: int, has_conf: bool, has_note: bool, lang: str | N
         strange = sorted({w.lower() for w in _WORD.findall(_ALLOWED_TAGS.sub(" ", plain))} - known)
         if strange:
             problems.append(f"words outside the {lang} vocabulary: {', '.join(strange[:5])}")
+        if direction is not None:
+            used = {w.lower() for w in _WORD.findall(_ALLOWED_TAGS.sub(" ", plain))}
+            wrong = sorted(used & direction_words(lang, "sell" if direction == "buy" else "buy"))
+            if wrong:
+                problems.append(f"words of the opposite direction: {', '.join(wrong[:5])}")
+            if not used & direction_words(lang, direction):
+                problems.append("the direction of the trade is not stated")
     words = len(plain.split())
     if not 15 <= words <= 140:
         problems.append(f"length {words} words")
