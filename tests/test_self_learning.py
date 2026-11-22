@@ -21,7 +21,20 @@ sys.path.insert(0, str(ROOT / "tests"))
 from test_trading_pipeline import make_snapshot  # noqa: E402
 
 
+def check_quality_guard() -> None:
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from self_learn import quality_drop, val_quality
+    champ = {"signal_val_auc": 0.62, "horizon_val_acc": 0.44}
+    assert quality_drop({"signal_val_auc": 0.615, "horizon_val_acc": 0.44}, champ, 0.01) == []
+    assert len(quality_drop({"signal_val_auc": 0.57, "horizon_val_acc": 0.36}, champ, 0.01)) == 2
+    assert quality_drop({"signal_val_auc": None, "horizon_val_acc": 0.5}, champ, 0.01) == []
+    assert quality_drop({"signal_val_auc": 0.1}, {}, 0.01) == []  # no champion measures: no veto
+    assert val_quality({"signal": {"note": "x"}, "horizon": {"val": {"accuracy": 0.4}}}) == \
+        {"signal_val_auc": None, "horizon_val_acc": 0.4}
+
+
 def main() -> None:
+    check_quality_guard()
     tmp = Path(tempfile.mkdtemp())
     try:
         snap = tmp / "snap"
