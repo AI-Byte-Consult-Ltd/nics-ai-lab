@@ -194,6 +194,15 @@ def main() -> None:
                                    "--lr-scale", str(sl.get("lr_scale", 0.5))]))
         if need_scratch:
             plans.append(("scratch", []))
+        # daily trend context (trend_context.py, 0.14.0) as a fair trial: a fresh model WITH the six
+        # trend features, judged like every challenger (validation score on the same new data).
+        # It replaces the champion only if it is better; then the champion keeps the features.
+        tc = cfg.get("trend_context") or {}
+        trial_file = base / "shadow" / "trend_trial_last.json"
+        champ_has_trend = bool(champion) and (champ_dir / "training-manifest.json").exists() and \
+            "d1_trend_vote" in json.loads((champ_dir / "training-manifest.json").read_text()).get("bar_features", [])
+        if tc.get("trial") and not tc.get("enabled") and not champ_has_trend and (need_scratch or not trial_file.exists()):
+            plans.append(("trend", ["--trend-context", "on"]))
         results = []
         for kind, extra in plans:
             exp = f"self-{stamp}-{kind}"
@@ -208,6 +217,16 @@ def main() -> None:
                             "horizon_majority": m["horizon"]["test"].get("majority_baseline")})
             log(f"challenger {exp}: val_score {m['val_score']:.4f} (test {m['test_score']:.4f}, report only)")
         report["challengers"] = results
+        trial = next((r for r in results if r["kind"] == "trend"), None)
+        if trial:
+            others = [r["val_score"] for r in results if r["kind"] != "trend"]
+            report["trend_trial"] = {"val_score": trial["val_score"], "champion_val_score": champ_score,
+                                     "best_other_challenger": min(others) if others else None,
+                                     "at": datetime.now(timezone.utc).isoformat()}
+            trial_file.parent.mkdir(parents=True, exist_ok=True)
+            trial_file.write_text(json.dumps(report["trend_trial"], indent=2), encoding="utf-8")
+            log(f"trend-context trial: val {trial['val_score']:.4f} vs champion {champ_score} "
+                f"and other challengers {others}")
 
         # 4. promote
         best = min(results, key=lambda r: r["val_score"]) if results else None

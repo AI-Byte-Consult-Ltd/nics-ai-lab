@@ -14,7 +14,7 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
-## [0.13.2] - 2026-11-22
+## [0.14.1] - 2026-11-22
 
 ### Fixed
 - The journal check now also refuses a post in the wrong language, a mixed one or one
@@ -22,6 +22,38 @@ no silent, unversioned changes.
   language (closed vocabulary). Found on a trial model that wrote fluent Spanish for an
   English request and passed the earlier check.
 
+## [0.14.0] - 2026-11-22
+
+Ten well-known trading methods tested on our data; the trend methods that beat ours become
+inputs of NICS Trading. No live system changes behaviour (the scanner, the level method, the bot
+and the EAs are untouched; a shadow stream in n8n only measures).
+
+### Added
+- `src/nics/market/classic_methods.py`: ten methods as code rules with our own parameters
+  (neutral ids m01–m10), our four training methods and the D20 swing rule ported to daily bars,
+  and an honest daily backtester (next-open entries, gaps through stops, stop before target,
+  spread + swap costs, open positions marked at the end).
+- `scripts/methods_research.py`: reproduces the research table from a lab snapshot.
+- `docs/methods_research_2026-11-22.md`: method, results, checks (random-timing control,
+  fat tails, years, groups, parameters chosen on in-sample only), same-window comparison with
+  the scanner and the level method.
+- `src/nics/market/trend_context.py`: daily states of five trend methods (12-month momentum,
+  EMA50/200, channel 55/20 passed the bar; cloud and MACD trend borderline) + their vote, as
+  six new bar features on every timeframe, strictly causal (only daily candles closed by the
+  bar's close). Broker D1 where it exists, scaled public D1 before it. The nightly cycle stores
+  the latest states in `data/context/daily_trend.csv`; live scoring reads them from there.
+- `tests/test_trend_context.py`; registry: status `feature` and five `rejected` rules.
+
+### Changed
+- The trend features are a **trial**, not switched on for everyone (`trend_context.enabled: false`,
+  `trial: true`): the nightly cycle trains one extra fresh model WITH them (first night, then on
+  weekly scratch nights) and it replaces the champion only if its validation score on the same new
+  data is better; a champion that has them keeps them (a loaded model always runs with the
+  features it was trained with, `lock_schema_from`). The current champion keeps working unchanged.
+  Why a trial: a quick check on our broker 1h/4h/D1 data (1500 steps, same seed) showed no gain
+  for the intraday heads (validation score 1.7432 with vs 1.7415 without; signal test AUC 0.589
+  vs 0.585); the methods are strong on daily positions, which is not what the model predicts yet.
+- `train_trading.py --trend-context on|off|config`.
 ## [0.13.1] - 2026-11-22
 
 ### Added

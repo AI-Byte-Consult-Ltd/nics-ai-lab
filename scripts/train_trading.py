@@ -94,6 +94,8 @@ def main() -> None:
     ap.add_argument("--init-from", default=None, help="release/ dir to warm-start from (same feature schema)")
     ap.add_argument("--max-steps", type=int, default=None)
     ap.add_argument("--lr-scale", type=float, default=1.0)
+    ap.add_argument("--trend-context", choices=["config", "on", "off"], default="config",
+                    help="daily trend features (trend_context.py); a warm start keeps the schema of its weights")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -103,6 +105,10 @@ def main() -> None:
     use_public = not args.no_public and bool(cfg.data.get("use_public", True))
     max_steps = args.max_steps or cfg.training.max_steps
     base_lr = cfg.training.learning_rate * args.lr_scale
+    if args.init_from:  # warm start: same features as those weights
+        T.lock_schema_from(json.loads((Path(args.init_from) / "training-manifest.json").read_text(encoding="utf-8")))
+    elif args.trend_context != "config":
+        market.use_trend_context(args.trend_context == "on", lock=True)
     t_load = time.time()
     series, H, S, info = T.build_samples(cfg, snapshot, use_public)
     print(f"Loaded {len(series)} candle series, {len(H['y'])} horizon samples, {len(S['y'])} setups "

@@ -20,8 +20,8 @@ and be compared on real outcomes before it influences anything.
 | Field | Value |
 |---|---|
 | Architecture | Linear input projection + 3 Transformer blocks (same from-scratch blocks as NICS Language) + 2 heads -- `src/nics/models/trading/model.py` |
-| Parameters | 166,532 (`configs/trading/nano.yaml`) |
-| Input | last 96 bars of one series, any timeframe (1min, 5min, 15min, 1h, 4h, D1, W1): returns, ranges and wicks in ATR units, volatility regime, volume z-score, time of day / week, indicators (RSI, EMA 20/50/200, MACD, Bollinger, stochastic, ADX, channel / level distances), candle patterns, timeframe and source (broker / public) flags |
+| Parameters | 166,916 (0.14.0; 166,532 before the trend context) (`configs/trading/nano.yaml`) |
+| Input | last 96 bars of one series, any timeframe (1min, 5min, 15min, 1h, 4h, D1, W1): returns, ranges and wicks in ATR units, volatility regime, volume z-score, time of day / week, indicators (RSI, EMA 20/50/200, MACD, Bollinger, stochastic, ADX, channel / level distances), candle patterns, timeframe and source (broker / public) flags, daily trend context since 0.14.0 (state of 12-month momentum, EMA50/200, channel 55/20, cloud and MACD trend on the daily candles closed by that bar, plus their vote: `src/nics/market/trend_context.py`) |
 | Horizon head | price N bars later: down / flat / up (±0.5 ATR); N per timeframe in the config (1 h ahead on 1min up to 1 month ahead on W1) |
 | Signal head | probability that a trade setup reaches TP1 (or its TP) before SL; setups from every source: scanner (all modes, strong and weak), shadow strategies, EA signals, our own trades, and setups our trading methodologies generate on history; source / method, scanner scores, TP2/TP3, strategy version and daily-range room are inputs |
 | Pretrained weights | **None** |
