@@ -14,6 +14,13 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.13.1] - 2026-11-22
+
+### Added
+- `scripts/eval_journal.py`: asks the current weights for journal posts over all languages
+  and fact combinations and counts how many pass the code check. Run after every training
+  night; the share is part of the night report on the dashboard.
+
 ## [0.13.0] - 2026-11-22
 
 NICS Language: our own task examples for the first task (journal post about a demo trade).
