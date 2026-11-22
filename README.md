@@ -1,6 +1,6 @@
 # NICS AI Lab
 
-**Version 0.14.0** -- see [`CHANGELOG.md`](CHANGELOG.md) for release history.
+**Version 0.17.0** -- see [`CHANGELOG.md`](CHANGELOG.md) for release history.
 Every merged change bumps this version; there are no unversioned changes.
 
 Independent model training infrastructure for **AI Byte Consult Ltd** / the
@@ -34,9 +34,10 @@ these models. See [`model_cards/`](model_cards/) for per-model provenance.
 | `nics-text-nano` | Archived pipeline check (Aug 2026) | ~869K | Not a NICS Language model; no longer trainable |
 | `nics-text-micro` | Prototype: code and tests ready, not trained yet | ~23.6M | NICS Language, first working size; own tokenizer for all 12 site languages |
 | `nics-text-alpha` | Plan: config ready, starts after micro passes its checks | ~50.3M | NICS Language, largest size realistic on the laptop CPU |
-| `nics-vision-nano` | First run complete | ~34K | CPU-trained, `fashion-mnist-v1`, 87.1% val accuracy, pipeline scale |
+| `nics-vision-nano` | Archived pipeline check (Aug 2026) | ~34K | Fashion-MNIST; not reused by NICS Vision Geo |
+| `nics-vision-geo-micro` | Prototype: first cloud trial 2026-11-22, 39 classes, test top-1 61.4 % / top-3 81.4 % on museum photos | ~0.98M | NICS Vision, rocks and minerals from photos, own GeoNet from random weights, museum photos (CC0, CC BY); see [`docs/vision-geo.md`](docs/vision-geo.md) |
 | `nics-trading-nano` | Prototype: self-learning pipeline ready, not trained on real data yet | ~167K | NICS Trading; trains on all our trading data (`nics-market-v2`, own trades) plus public D1/W1 history, on the laptop |
-| `nics-vision-alpha` | Planned | -- | |
+| `nics-vision-alpha` | Plan | -- | |
 
 Hardware: CPU only (no discrete GPU on the current training machine) --
 see the hardware report referenced in `docs/architecture.md`.

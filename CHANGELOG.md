@@ -14,6 +14,42 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.17.0] - 2026-11-22
+
+### Added
+- **NICS Vision Geo** (`src/nics/geo/`), built from scratch: rocks and minerals from photos.
+  Nothing from the 2026-08 `nics-vision-nano` (Fashion-MNIST) is reused.
+  - `taxonomy.py`: 50 classes in 11 groups (native elements, sulfides, oxides, carbonates,
+    silicates, rocks, meteorites), mapping of museum specimen names to classes, and
+    people-written texts (ru/en) on what each find may indicate, how to check it by hand,
+    and cautions (asbestos in serpentinite).
+  - `licence.py`: licence gate per image (CC0, public domain, CC BY, CC BY-SA pass;
+    NC, ND, unknown refused).
+  - `sources.py`: readers for the Smithsonian NMNH Mineral Sciences Open Access bulk
+    metadata (CC0), the NHM London Data Portal (CC BY 4.0) and Wikimedia Commons
+    (per-file licence; first live run from the laptop).
+  - `dataset.py`: selection with caps per class and per specimen, download and resize to
+    192 px without EXIF, near-duplicate removal (difference hash), split by specimen.
+  - `model.py`: GeoNet, our own inverted-residual CNN with squeeze-excitation and a
+    class + group head, about 0.98 M parameters, random initialisation.
+  - `train.py`: class-balanced sampling, colour-honest augmentation, checkpoint chosen on
+    validation, temperature calibration, test once; top-1/top-3/balanced accuracy, ECE,
+    per-class recall, top confusions.
+  - `advisor.py`: the answer to a person, with probabilities, alternatives, hand checks,
+    what it may indicate, and the fixed limit "a photo is a hint, an assay is proof";
+    abstains below 25 %.
+- Scripts `geo_fetch.py`, `geo_build.py`, `train_geo.py` (snapshot to the CEO desk as
+  `nics-vision`), `geo_identify.py`; `scripts/windows/geo_train.bat`; config
+  `configs/vision/geo_micro.yaml`.
+- Datasets `smithsonian-nmnh-minsci-v1`, `nhm-london-mineralogy-v1` (in use) and
+  `wikimedia-commons-geo-v1` (planned); `docs/vision-geo.md`; model card
+  `model_cards/nics-vision-geo-micro.md`; `tests/test_vision_geo.py` (10 tests).
+
+### Trial
+- First cloud run (4 CPU threads, 27 min, 20 epochs, 6,683 museum photos, 39 classes):
+  test top-1 61.4 %, top-3 81.4 %, balanced accuracy 51.2 % (chance 2.6 %), ECE 6.0 %.
+  Under-trained; museum photos only, field accuracy unknown.
+
 ## [0.16.1] - 2026-11-22
 
 ### Fixed

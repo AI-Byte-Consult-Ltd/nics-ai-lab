@@ -1,0 +1,24 @@
+# NICS Vision Geo, micro size: rock and mineral photos, own GeoNet from random weights, CPU.
+model_id: nics-vision-geo-micro
+seed: 42
+
+data:
+  sources: [smithsonian, nhm]      # + commons on the laptop (python scripts/geo_fetch.py --sources commons)
+  manifest: data/geo/manifest.jsonl
+  cache_dir: data/geo/cache        # resized PNGs, no metadata; re-used by every build
+  built_dir: data/geo/built
+  cache_size: 192                  # stored square size; training crops from it
+  min_images: 40                   # classes with fewer selected photos are left out of this model
+  max_per_class: 800               # keeps meteorite slices from swamping everything
+  max_per_specimen: 4              # several photos of one specimen add little, and stay in one split anyway
+  exclude_share_alike: false       # true = drop CC BY-SA images (if counsel advises)
+
+train:
+  image_size: 160
+  epochs: 40
+  batch_size: 64
+  lr: 0.002
+  weight_decay: 0.05
+  label_smoothing: 0.1
+  group_loss_weight: 0.3
+  model: {}                        # GeoNetConfig overrides (stem, stages, head, dropout)
