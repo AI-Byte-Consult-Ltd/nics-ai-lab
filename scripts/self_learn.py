@@ -96,6 +96,22 @@ def run(cmd: list[str], log) -> str:
     return p.stdout
 
 
+def val_quality(m: dict) -> dict:
+    """Validation quality measures of a metrics dict (None when a measure is not available)."""
+    return {"signal_val_auc": ((m.get("signal") or {}).get("val") or {}).get("auc"),
+            "horizon_val_acc": ((m.get("horizon") or {}).get("val") or {}).get("accuracy")}
+
+
+def quality_drop(challenger: dict, champion: dict, tol: float) -> list[str]:
+    """Measures on which the challenger is worse than the champion by more than `tol`."""
+    out = []
+    for k in ("signal_val_auc", "horizon_val_acc"):
+        a, b = challenger.get(k), champion.get(k)
+        if a is not None and b is not None and a == a and b == b and a < b - tol:
+            out.append(f"{k} {a:.3f} < {b:.3f}")
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default=str(ROOT / "configs/trading/nano.yaml"))
@@ -153,7 +169,7 @@ def main() -> None:
 
         # 2. champion on the new data + forward check of its live shadow predictions
         champion = json.loads(champ_json.read_text()) if champ_json.exists() else None
-        champ_score = None
+        champ_score, champ_val = None, {}
         if champion and (champ_dir / "model.safetensors").exists():
             out = base / f"eval-champion-{stamp}.json"
             try:
@@ -162,8 +178,9 @@ def main() -> None:
                      "--out", str(out)], log)
                 ev = json.loads(out.read_text())
                 champ_score = ev["val_score"]
+                champ_val = val_quality(ev)
                 report["champion"] = {"experiment_id": champion["experiment_id"], "val_score": champ_score,
-                                      "test_score": ev["test_score"],
+                                      "test_score": ev["test_score"], **champ_val,
                                       "forward_shadow": ev.get("forward_shadow")}
             except RuntimeError as e:  # e.g. feature schema changed after a code update
                 log(f"champion cannot be evaluated on current code, it will be replaced: {e}")
@@ -211,7 +228,7 @@ def main() -> None:
             rel = Path(re.findall(r"RELEASE_DIR=(.+)", outp)[-1].strip())
             m = json.loads((rel / "metrics.json").read_text())
             results.append({"kind": kind, "experiment_id": exp, "release": str(rel), "val_score": m["val_score"],
-                            "test_score": m["test_score"],
+                            "test_score": m["test_score"], **val_quality(m),
                             "signal_test_auc": (m.get("signal") or {}).get("test", {}).get("auc"),
                             "horizon_test_acc": m["horizon"]["test"].get("accuracy"),
                             "horizon_majority": m["horizon"]["test"].get("majority_baseline")})
@@ -229,7 +246,18 @@ def main() -> None:
                 f"and other challengers {others}")
 
         # 4. promote
-        best = min(results, key=lambda r: r["val_score"]) if results else None
+        # The validation score is a loss: it can improve a little while the model separates good
+        # setups from bad ones worse (22.11.2026: a challenger won by 0.003 and its signal AUC and
+        # horizon accuracy fell). So a challenger must also not be clearly worse than the champion
+        # on the two validation quality measures. Validation only; test stays report-only.
+        tol = float(sl.get("quality_tolerance", 0.01))
+        for r in results:
+            r["quality_drop"] = quality_drop(r, champ_val, tol) if champ_score is not None else []
+            if r["quality_drop"]:
+                log(f"challenger {r['experiment_id']} not eligible: worse than the champion on validation "
+                    f"{r['quality_drop']}")
+        eligible = [r for r in results if not r["quality_drop"]]
+        best = min(eligible, key=lambda r: r["val_score"]) if eligible else None
         margin = float(sl.get("min_improvement", 0.002))
         promote = best is not None and (champ_score is None or best["val_score"] < champ_score - margin)
         if promote:

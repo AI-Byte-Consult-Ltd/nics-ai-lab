@@ -14,6 +14,16 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.16.1] - 2026-11-22
+
+### Fixed
+- NICS Trading nightly cycle: a challenger now replaces the champion only if, besides a better
+  validation score, it is not worse than the champion by more than `quality_tolerance` (0.01) in
+  validation signal AUC or validation horizon accuracy. Reason: on 2026-11-22 the trend-features
+  trial won by 0.003 of validation score while its test signal AUC fell from 0.618 to 0.571 and
+  its horizon accuracy from 0.438 to 0.357. Selection still uses validation data only; test stays
+  report-only. The night report carries `signal_val_auc`, `horizon_val_acc` and `quality_drop`.
+
 ## [0.16.0] - 2026-11-22
 
 ### Added

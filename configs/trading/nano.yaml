@@ -43,6 +43,7 @@ self_learning:           # scripts/self_learn.py (nightly cycle on the laptop)
   lr_scale: 0.5          # half the learning rate when fine-tuning
   scratch_every_days: 7  # also train a fresh model from random weights once a week
   min_improvement: 0.002 # challenger must beat the champion's validation score by at least this (test is report-only)
+  quality_tolerance: 0.01 # ...and must not lose more than this in validation signal AUC or horizon accuracy
   keep_snapshots: 3      # older data/market/<date>/ folders are deleted
 
 training:
