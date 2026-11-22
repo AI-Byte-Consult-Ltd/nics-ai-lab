@@ -45,7 +45,7 @@ def evaluate(model, tok, samples: int, seed: int = 11, temperature: float = 0.7,
         new_tokens += len(answer)
         ended = bool(answer) and answer[-1] == end_id
         text = tok.decode(answer[:-1] if ended else answer)
-        problems = examples.check(text, targets, conf, note, lang) + ([] if ended else ["no end marker"])
+        problems = examples.check(text, targets, conf, note, lang, direction) + ([] if ended else ["no end marker"])
         stat = by_lang.setdefault(lang, {"passed": 0, "total": 0})
         stat["total"] += 1
         if not problems:

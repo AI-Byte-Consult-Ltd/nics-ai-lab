@@ -14,6 +14,15 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.14.2] - 2026-11-22
+
+### Added
+- The journal check also takes the direction of the trade: a post that uses a word of the
+  opposite side, or never states the side, is refused.
+- Trial on the cloud machine (task records only, 415 steps, about 50 minutes of CPU):
+  80 of 80 generated posts pass the full check in all five languages. This shows that the
+  format can be learned; it says nothing yet about the model trained on the laptop.
+
 ## [0.14.1] - 2026-11-22
 
 ### Fixed
