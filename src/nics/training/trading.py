@@ -19,6 +19,7 @@ from safetensors.torch import load_file
 
 from nics.market import data as market
 from nics.market import methods as methodologies
+from nics.market import trend_context
 from nics.models.trading.model import NicsTradingConfig, NicsTradingModel
 
 VOL_COL = market.BAR_FEATURES.index("vol_z")
@@ -74,6 +75,13 @@ def build_samples(cfg, snapshot: Path, use_public: bool, label_setups: bool = Tr
     series = market.load_series(snapshot, use_public=use_public, intervals=list(ivcfg))
     if not series:
         sys.exit(f"No candles in {snapshot} for intervals {list(ivcfg)}.")
+    market.use_trend_context(bool((cfg.get("trend_context") or {}).get("enabled", False)))  # no-op if a model locked it
+    if market.trend_context_on():
+        # daily candles for the context even when this run trains on other timeframes only
+        extra = [] if "1day" in ivcfg else market.load_series(snapshot, use_public=use_public, intervals=["1day"])
+        real = trend_context.CACHE.parents[1] / "market"  # data/market/<date>: nightly snapshots
+        save_to = trend_context.CACHE if real in snapshot.resolve().parents else None
+        trend_context.prepare(series + extra, save_to=save_to)
     first_ok = d.window - 1 + market.WARMUP  # every feature is ready from here
 
     H = {k: [] for k in ("sid", "end", "y", "t0", "t1", "iv", "public")}
@@ -272,6 +280,12 @@ def new_model(cfg) -> NicsTradingModel:
         max_seq_len=cfg.data.window, dropout=cfg.model.dropout))
 
 
+def lock_schema_from(manifest: dict) -> None:
+    """A model always runs with the features it was trained with (trend context on or off)."""
+    feats = manifest.get("bar_features") or []
+    market.use_trend_context(all(f in feats for f in trend_context.TREND_FEATURES), lock=True)
+
+
 def schema_matches(manifest: dict) -> bool:
     return (manifest.get("bar_features") == market.BAR_FEATURES
             and manifest.get("signal_features") == market.SIGNAL_FEATURES)
@@ -279,6 +293,7 @@ def schema_matches(manifest: dict) -> bool:
 
 def load_release(release_dir: Path, cfg) -> tuple[NicsTradingModel, dict]:
     manifest = json.loads((release_dir / "training-manifest.json").read_text(encoding="utf-8"))
+    lock_schema_from(manifest)
     if not schema_matches(manifest):
         raise ValueError("feature schema of these weights differs from the current code; retrain from scratch")
     model = new_model(cfg)

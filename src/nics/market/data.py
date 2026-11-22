@@ -34,6 +34,7 @@ from pathlib import Path
 import numpy as np
 
 from nics.market.indicators import INDICATOR_FEATURES, PATTERN_FEATURES, indicator_block
+from nics.market.trend_context import TREND_FEATURES
 
 ATR_PERIOD = 14
 WARMUP = 60  # bars before every indicator is ready (EMA50, ADX, ATR)
@@ -50,8 +51,26 @@ BASE_FEATURES = [
     "vol_z",          # volume z-score over the window
     "hour_sin", "hour_cos", "dow_sin", "dow_cos",
 ]
-BAR_FEATURES = (BASE_FEATURES + INDICATOR_FEATURES + PATTERN_FEATURES
-                + [f"tf_{i}" for i in INTERVALS] + ["is_public"])
+BAR_FEATURES_CORE = (BASE_FEATURES + INDICATOR_FEATURES + PATTERN_FEATURES
+                     + [f"tf_{i}" for i in INTERVALS] + ["is_public"])
+# The feature list in use. The daily trend context (trend_context.py, 0.14.0) adds TREND_FEATURES
+# at the end when it is on. Who decides: a loaded model decides for itself (its manifest), so a
+# champion trained without the context keeps working; otherwise the config (trend_context.enabled).
+BAR_FEATURES = list(BAR_FEATURES_CORE)
+_TREND = {"on": False, "locked": False}
+
+
+def use_trend_context(on: bool, lock: bool = False) -> None:
+    """Switch the trend features in or out of BAR_FEATURES (in place). lock=True: set by a
+    loaded model's manifest; later config calls in the same process do not change it."""
+    if _TREND["locked"] and not lock:
+        return
+    _TREND.update(on=bool(on), locked=_TREND["locked"] or lock)
+    BAR_FEATURES[:] = BAR_FEATURES_CORE + (TREND_FEATURES if on else [])
+
+
+def trend_context_on() -> bool:
+    return _TREND["on"]
 METHOD_KINDS = ["method_range_both_sides", "method_breakout20", "method_ema_pullback", "method_level_bounce"]
 SETUP_KINDS = (["scanner_scheduled", "scanner_targeted", "scanner_scalper", "shadow", "ea_manual", "own_trade"]
                + METHOD_KINDS)
@@ -132,6 +151,7 @@ class Series:
     spread: np.ndarray  # ask - bid, 0 where unknown
     feats: np.ndarray | None = field(default=None, repr=False)
     atr: np.ndarray | None = field(default=None, repr=False)
+    htf: np.ndarray | None = field(default=None, repr=False)  # daily trend context, set by trend_context.attach
 
     @property
     def key(self) -> str:
@@ -209,7 +229,10 @@ def bar_features(s: Series) -> tuple[np.ndarray, np.ndarray]:
     onehot[:, -1] = 1.0 if s.public else 0.0
     ind = indicator_block(s.o, s.h, s.l, s.c, a)
     ind[WARMUP - 1:] = np.nan_to_num(ind[WARMUP - 1:], nan=0.0)
-    f = np.concatenate([base, ind, onehot], axis=1).astype(np.float32)
+    parts = [base, ind, onehot]
+    if _TREND["on"]:
+        parts.append(s.htf if s.htf is not None and len(s.htf) == len(s.c) else np.zeros((len(s.c), len(TREND_FEATURES))))
+    f = np.concatenate(parts, axis=1).astype(np.float32)
     s.feats, s.atr = f, a
     return f, a
 
