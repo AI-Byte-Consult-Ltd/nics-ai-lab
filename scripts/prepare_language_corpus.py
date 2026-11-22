@@ -7,15 +7,25 @@ must not be trained on text whose licence nobody checked.
 
 Output (not tracked in git):
   data/processed/language/text/<lang>/<source_id>/<doc>.txt   cleaned text
-and one provenance entry per source in data_registry/datasets.json with the
-checksum of every document.
+and one provenance entry per source in data/processed/language/datasets.json with
+the checksum of every document. That file lives next to the corpus and is not tracked
+by git, so building the corpus on the laptop never blocks the nightly "git pull".
 
 Usage:
   python scripts/prepare_language_corpus.py                 # every usable source
   python scripts/prepare_language_corpus.py --source nics-own-texts
   python scripts/prepare_language_corpus.py --list
+  python scripts/prepare_language_corpus.py --force         # rebuild sources that are already built
+
+Source kinds:
+  local      our own texts under data/raw/language/<source>/<lang>/*.txt
+  gutenberg  Project Gutenberg books by id (header and footer removed)
+  opus_mono  one gzip file with one sentence per line (United Nations Parallel Corpus,
+             Europarl). The file is read as a stream and reading stops at max_text_bytes,
+             so only the needed part is downloaded and nothing raw is kept on disk.
 """
 import argparse
+import gzip
 import hashlib
 import json
 import re
@@ -32,7 +42,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from nics.text.tokenizer import LANGUAGES as LANGS  # noqa: E402  (one list of languages for the whole lab)
 
 SOURCES = ROOT / "data_registry" / "language_sources.json"
-REGISTRY = ROOT / "data_registry" / "datasets.json"
+REGISTRY = ROOT / "data" / "processed" / "language" / "datasets.json"
 RAW = ROOT / "data" / "raw" / "language"
 TEXT = ROOT / "data" / "processed" / "language" / "text"
 GUTENBERG_LANG = {
@@ -97,6 +107,55 @@ def docs_gutenberg(source: dict, delay: float):
         yield lang, f"pg{book_id}", body
 
 
+def sample_lines(lines, sample_every: int = 1, block_lines: int = 2000, min_chars: int = 25):
+    """Yield usable lines: blocks of block_lines, one block kept out of every sample_every.
+
+    Taking whole blocks keeps neighbouring sentences together (the model sees connected text),
+    skipping blocks spreads the sample over more documents. Short lines and exact repeats
+    (headers, formulas of procedure) are dropped."""
+    seen: set[bytes] = set()
+    for number, line in enumerate(lines):
+        if (number // block_lines) % sample_every:
+            continue
+        line = line.strip()
+        if len(line) < min_chars:
+            continue
+        key = hashlib.blake2b(line.encode("utf-8"), digest_size=8).digest()
+        if key in seen:
+            continue
+        seen.add(key)
+        yield line
+
+
+def docs_from_lines(lines, lang: str, max_text_bytes: int, doc_bytes: int = 4_000_000):
+    """Group lines into documents of about doc_bytes until max_text_bytes is reached."""
+    part, size, total, number = [], 0, 0, 0
+    for line in lines:
+        part.append(line)
+        size += len(line.encode("utf-8")) + 1
+        if size >= doc_bytes or total + size >= max_text_bytes:
+            number += 1
+            total += size
+            yield lang, f"part-{number:04d}", "\n".join(part)
+            part, size = [], 0
+            if total >= max_text_bytes:
+                return
+    if part:
+        yield lang, f"part-{number + 1:04d}", "\n".join(part)
+
+
+def docs_opus_mono(source: dict):
+    req = urllib.request.Request(source["url"], headers={"User-Agent": "corpus-builder/1.0"})
+    with urllib.request.urlopen(req, timeout=120) as resp, gzip.open(resp, "rt", encoding="utf-8", errors="replace") as lines:
+        picked = sample_lines(lines, int(source.get("sample_every", 1)), min_chars=int(source.get("min_chars", 25)))
+        yield from docs_from_lines(picked, source["lang"], int(source["max_text_bytes"]))
+
+
+def is_built(source: dict, registry: list) -> bool:
+    entry = next((d for d in registry if d["dataset_id"] == f"language-{source['source_id']}"), None)
+    return bool(entry) and all((TEXT / f["lang"] / source["source_id"] / f"{f['doc']}.txt").exists() for f in entry["files"])
+
+
 def docs_local(source: dict):
     base = ROOT / source["path"]
     for lang in LANGS:
@@ -106,7 +165,15 @@ def docs_local(source: dict):
 
 def build_source(source: dict, delay: float) -> dict | None:
     sid = source["source_id"]
-    docs = docs_gutenberg(source, delay) if source["kind"] == "gutenberg" else docs_local(source)
+    kind = source["kind"]
+    if kind == "gutenberg":
+        docs = docs_gutenberg(source, delay)
+    elif kind == "opus_mono":
+        docs = docs_opus_mono(source)
+    elif kind == "local":
+        docs = docs_local(source)
+    else:
+        sys.exit(f"{sid}: unknown source kind {kind!r}")
     files, total = [], 0
     for lang, name, body in docs:
         text = clean_text(body)
@@ -125,7 +192,9 @@ def build_source(source: dict, delay: float) -> dict | None:
         "dataset_id": f"language-{sid}",
         "name": source["name"],
         "source": sid,
-        "source_url": source.get("license_url"),
+        "source_url": source.get("url") or source.get("license_url"),
+        "license_url": source.get("license_url"),
+        "attribution": source.get("attribution"),
         "acquisition_date": datetime.now(timezone.utc).isoformat(),
         "license": source["license"],
         "license_checked": source["license_checked"],
@@ -142,6 +211,7 @@ def main() -> None:
     parser.add_argument("--source", action="append", help="source_id to build (repeatable); default: all usable")
     parser.add_argument("--list", action="store_true")
     parser.add_argument("--delay", type=float, default=2.0, help="seconds between downloads")
+    parser.add_argument("--force", action="store_true", help="rebuild downloaded sources that are already built")
     args = parser.parse_args()
 
     sources = json.loads(SOURCES.read_text(encoding="utf-8"))
@@ -167,12 +237,22 @@ def main() -> None:
             if wanted:
                 sys.exit(1)
             continue
-        print(f"Building {sid} ...")
-        entry = build_source(source, args.delay)
+        if source["kind"] == "opus_mono" and not args.force and is_built(source, registry):
+            print(f"Already built: {sid} (use --force to download it again)")
+            continue
+        print(f"Building {sid} ...", flush=True)
+        try:
+            entry = build_source(source, args.delay)
+        except OSError as error:  # network trouble on one source must not lose the others
+            print(f"  FAILED {sid}: {error}. Run the script again to retry this source.")
+            continue
         if entry:
             registry = [d for d in registry if d["dataset_id"] != entry["dataset_id"]] + [entry]
             built += 1
-            print(f"  {entry['documents']} documents, {entry['size_bytes']:,} bytes")
+            print(f"  {entry['documents']} documents, {entry['size_bytes']:,} bytes", flush=True)
+            REGISTRY.parent.mkdir(parents=True, exist_ok=True)
+            REGISTRY.write_text(json.dumps(registry, indent=2, ensure_ascii=False), encoding="utf-8")
+    REGISTRY.parent.mkdir(parents=True, exist_ok=True)
     REGISTRY.write_text(json.dumps(registry, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"Sources built: {built}. Text is in {TEXT}")
 
