@@ -33,6 +33,9 @@ methods:                 # trading methodologies run on history -> extra labelle
   cooldown_bars: 6       # at most one setup per method and direction every 6 bars
   on_public: true        # also run them on public history (labelled on those candles, training only)
 
+trend_context:           # daily trend states as inputs on every bar (src/nics/market/trend_context.py, 0.12.0)
+  enabled: true          # momentum 12m, EMA50/200, channel 55/20, cloud, MACD trend: research 22.11.2026
+
 self_learning:           # scripts/self_learn.py (nightly cycle on the laptop)
   finetune_steps: 1500   # warm-start from the champion with this many steps
   lr_scale: 0.5          # half the learning rate when fine-tuning

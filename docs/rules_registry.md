@@ -45,6 +45,35 @@ overconfident in it.
 | method_ema_pullback | trend pullback to EMA20 | EMA20 > EMA50, both rising; bar touches EMA20 and closes above it; stop 0.5 ATR beyond the 5-bar extreme; target 1.5 R |
 | method_level_bounce | bounce from a swing level | level touched at least twice in 200 bars; price comes back and closes off it; stop 0.7 ATR beyond; target 2 R |
 
+## Model features: daily trend context (since 0.12.0)
+
+From the research of 22.11.2026 (`docs/methods_research_2026-11-22.md`): ten well-known methods
+coded as rules and backtested on 1990–2026 daily history, out-of-sample from 2018, costs and
+swaps included. The state of each method below (+1 long, −1 short, 0 flat) on the instrument's
+daily candles is an input on every bar of every timeframe (`src/nics/market/trend_context.py`),
+plus their average vote. Inputs, not filters: the model decides what they are worth.
+
+| id | idea | OOS avg R | t | status |
+|---|---|---|---|---|
+| trend_momentum_12m | sign of the 252-day return, decided at month end, stop 3 ATR | +0.85 | 2.98 | feature + shadow `[48 SHADOW]` |
+| trend_ma_50_200 | EMA50 vs EMA200, stop 3 ATR | +0.97 | 2.70 | feature + shadow `[48 SHADOW]` |
+| trend_channel_55_20 | 55-day breakout, 20-day exit, stop 2 ATR | +0.20 | 2.11 | feature + shadow `[48 SHADOW]` |
+| trend_cloud | close beyond the 9/26/52 cloud with 9 > 26 (mirror) | +0.06 | 1.49 | feature only (borderline) |
+| trend_macd | MACD and signal agree with the sign of MACD | +0.02 | 1.01 | feature only (borderline) |
+
+Caveats: the profit is long-side, fat-tailed and lumpy by year; forex is negative in all of
+them; the shadow stream needs about 3 months for a verdict.
+
+## Rejected (22.11.2026, daily 1990–2026, out-of-sample 2018–2026)
+
+| id | idea | OOS avg R | t | reason |
+|---|---|---|---|---|
+| rejected_rsi2_pullback | RSI(2) extreme in the SMA200 direction | −0.004 | −0.49 | zero after costs |
+| rejected_band_reversion | back to the mean from outside Bollinger(20, 2) | −0.083 | −5.57 | negative in both periods |
+| rejected_nr7_breakout | stop orders around the narrowest of 7 bars | −0.043 | −2.78 | negative out of sample |
+| rejected_atr_trailing_trend | ATR(10)×3 trailing line with flips | −0.027 | −1.02 | negative |
+| rejected_volatility_squeeze | band-width low, then a close outside the band | +0.049 | 0.73 | not significant, IS negative |
+
 ## Candidates (shadow / queue)
 
 | # | id | idea from | definition | added | status | forward review | result |

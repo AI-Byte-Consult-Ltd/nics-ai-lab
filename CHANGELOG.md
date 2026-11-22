@@ -14,6 +14,32 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.12.0] - 2026-11-22
+
+Ten well-known trading methods tested on our data; the trend methods that beat ours become
+inputs of NICS Trading. No live system changes behaviour (the scanner, the level method, the bot
+and the EAs are untouched; a shadow stream in n8n only measures).
+
+### Added
+- `src/nics/market/classic_methods.py`: ten methods as code rules with our own parameters
+  (neutral ids m01–m10), our four training methods and the D20 swing rule ported to daily bars,
+  and an honest daily backtester (next-open entries, gaps through stops, stop before target,
+  spread + swap costs, open positions marked at the end).
+- `scripts/methods_research.py`: reproduces the research table from a lab snapshot.
+- `docs/methods_research_2026-11-22.md`: method, results, checks (random-timing control,
+  fat tails, years, groups, parameters chosen on in-sample only), same-window comparison with
+  the scanner and the level method.
+- `src/nics/market/trend_context.py`: daily states of five trend methods (12-month momentum,
+  EMA50/200, channel 55/20 passed the bar; cloud and MACD trend borderline) + their vote, as
+  six new bar features on every timeframe, strictly causal (only daily candles closed by the
+  bar's close). Broker D1 where it exists, scaled public D1 before it. The nightly cycle stores
+  the latest states in `data/context/daily_trend.csv`; live scoring reads them from there.
+- `tests/test_trend_context.py`; registry: status `feature` and five `rejected` rules.
+
+### Changed
+- Feature schema (+6 bar features): the champion cannot warm-start; the next nightly cycle
+  trains a fresh model and the model opinion is unavailable only while that run trains.
+
 ## [0.11.0] - 2026-11-22
 
 NICS Language, stages 0 and 1 of the from-scratch plan. Nothing is trained yet and no
