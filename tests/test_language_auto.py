@@ -70,6 +70,37 @@ def test_newest_unfinished_experiment():
     assert language_night.newest_unfinished(tmp / "missing") is None
 
 
+
+
+def test_journal_examples_are_valid_and_filled_safely():
+    import random
+    from nics.text import examples as ex
+    from nics.text.tokenizer import APP_LANGUAGES, DEFAULT_SPECIALS
+    assert set(ex.BANK) == set(APP_LANGUAGES)
+    assert all(token in DEFAULT_SPECIALS for token in ex.SLOTS.values())
+    rng = random.Random(7)
+    for lang in ex.BANK:
+        assert set(ex.BANK[lang]) == set(ex.BANK["ru"])
+        for direction in ("buy", "sell"):
+            for targets in (1, 4):
+                for conf in (True, False):
+                    for note in (True, False):
+                        for _ in range(30):
+                            text = ex.compose(lang, direction, targets, conf, note, rng)
+                            assert ex.check(text, targets, conf, note) == [], (lang, text)
+                            assert "{" not in text and "|}" not in text
+    text = ex.compose("ru", "buy", 2, True, True, rng)
+    # the checker refuses what the model must never do
+    assert ex.check(text.replace("<|stop|>", "2350"), 2, True, True)          # wrote a number itself
+    assert ex.check(text + " <|tp1|>", 2, True, True)                           # unexpected slot
+    assert ex.check(text + " <a href='x'>x</a>", 2, True, True)                 # other markup
+    assert ex.check(text, 2, True, False)                                       # note slot without a note
+    filled = ex.fill(text, {"symbol": "XAUUSD", "entry": "1-2", "stop": "0.5", "targets": "3, 4", "conf": "70",
+                            "note": "<b>x</b> & <|stop|>"})
+    assert "&lt;b&gt;x&lt;/b&gt; &amp; &lt;|stop|&gt;" in filled and "<|" not in filled
+    assert ex.prompt("bg", "sell", 1, False, True) == "<|in|><|task:journal|><|lang:bg|> dir=sell targets=one conf=no note=yes<|out|>"
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
