@@ -6,8 +6,9 @@ The laptop cannot be reached from outside, so it asks: every 2 minutes (inside t
 
   {"id": "2026-11-23-day", "minutes": 60, "not_after": "2026-11-23T14:00:00+00:00"}
 
-and is executed once: language_auto.py --max-minutes N starts as a separate process and
-continues from the last checkpoint. Rules:
+and is executed once: language_auto.py --max-minutes N --gentle starts as a separate
+process and continues from the last checkpoint. Gentle = lowest CPU priority and half of
+the threads, so the laptop stays usable while it trains. Rules:
   * an empty id, an already handled id or a request past not_after does nothing;
   * minutes are clamped to 10..MAX_MINUTES;
   * nothing starts between 02:00 and 08:00 local time (the nightly cycle owns that window)
@@ -74,7 +75,7 @@ def start(minutes: int, root: Path = ROOT) -> None:
         flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
     (root / "logs").mkdir(exist_ok=True)
     out = open(root / "logs" / "language_remote.txt", "ab")
-    subprocess.Popen([sys.executable, str(root / "scripts" / "language_auto.py"), "--max-minutes", str(minutes)],
+    subprocess.Popen([sys.executable, str(root / "scripts" / "language_auto.py"), "--max-minutes", str(minutes), "--gentle"],
                      cwd=root, stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                      creationflags=flags, close_fds=True)
 
