@@ -14,6 +14,13 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.15.1] - 2026-11-22
+
+### Added
+- `language_auto.py --gentle`: lowest CPU priority and half of the processor threads,
+  so the laptop stays usable during a daytime run. Remote requests always use it;
+  the nightly run keeps full speed.
+
 ## [0.15.0] - 2026-11-22
 
 ### Added

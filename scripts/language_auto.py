@@ -37,6 +37,21 @@ LOCK = LOGS / "language.lock"
 MIN_TRAIN_MINUTES = 15
 
 
+def go_gentle() -> int:
+    """Daytime mode: lowest CPU priority for this process and everything it starts, and
+    half of the processor threads, so the laptop stays usable. Returns the thread count."""
+    try:
+        if sys.platform == "win32":
+            import ctypes
+            k = ctypes.windll.kernel32
+            k.SetPriorityClass(k.GetCurrentProcess(), 0x00000040)  # IDLE_PRIORITY_CLASS, inherited by children
+        else:
+            os.nice(19)
+    except Exception:  # noqa: BLE001 - priority is a courtesy, never a reason to fail
+        pass
+    return max(1, (os.cpu_count() or 2) // 2)
+
+
 def log(message: str) -> None:
     line = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {message}"
     print(line.encode("ascii", "replace").decode("ascii"), flush=True)  # a Windows console may not take every character
@@ -106,7 +121,12 @@ def main() -> None:
     parser.add_argument("--max-minutes", type=float, default=None)
     parser.add_argument("--threads", type=int, default=None)
     parser.add_argument("--no-push", action="store_true")
+    parser.add_argument("--gentle", action="store_true",
+                        help="daytime: lowest priority and half of the threads, the laptop stays usable")
     args = parser.parse_args()
+    if args.gentle:
+        half = go_gentle()
+        args.threads = args.threads or half
     push_report = not args.no_push
 
     from self_learn import pid_alive  # same stale-lock rule as the trading cycle
@@ -131,7 +151,7 @@ def main() -> None:
             report("готова к обучению", "Тексты скачаны и подготовлены. Обучение начнётся следующей ночью.", push_report)
             return
         from language_night import run_night
-        log(f"training for {left:.0f} min")
+        log(f"training for {left:.0f} min" + (f", gentle mode, {args.threads} threads" if args.gentle else ""))
         code = run_night(args.config, left - 5, args.threads, push_report)
         log(f"training ended with code {code}")
     except Exception as error:  # noqa: BLE001 - report and leave; the next night continues
