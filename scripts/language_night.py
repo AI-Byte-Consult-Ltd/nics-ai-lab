@@ -88,6 +88,20 @@ def build_report(cfg, exp_dir: Path, started: float, returncode: int) -> dict:
     }
 
 
+def journal_check(config: str, exp_dir: Path, samples: int = 40) -> dict | None:
+    """How many journal posts written by the current weights pass the code check (about a minute)."""
+    out = exp_dir / "journal_check.json"
+    try:
+        subprocess.run([sys.executable, str(ROOT / "scripts" / "eval_journal.py"), "--experiment", str(exp_dir),
+                        "--config", str(ROOT / config), "--samples", str(samples), "--out", str(out)],
+                       cwd=ROOT, timeout=900, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        result = json.loads(out.read_text(encoding="utf-8"))
+        return {k: result[k] for k in ("step", "samples", "passed", "pass_percent", "by_language", "tokens_per_second")}
+    except Exception as error:  # noqa: BLE001 - the check must never fail the night
+        print(f"journal check skipped: {type(error).__name__}")
+        return None
+
+
 def run_night(config: str, max_minutes: float, threads: int | None = None, push_report: bool = True) -> int:
     args = argparse.Namespace(config=config, max_minutes=max_minutes, threads=threads, no_push=not push_report)
     cfg = load_config(str(ROOT / args.config))
@@ -113,6 +127,11 @@ def run_night(config: str, max_minutes: float, threads: int | None = None, push_
     started = time.time()
     returncode = subprocess.run(cmd, cwd=ROOT).returncode
     report = build_report(cfg, exp_dir, started, returncode)
+    journal = journal_check(args.config, exp_dir) if returncode == 0 else None
+    if journal:
+        report["journal_check"] = journal
+        report["note"] += (f" Задача «дневник»: {journal['passed']} из {journal['samples']} текстов модели"
+                           " прошли проверку кодом.")
     (ROOT / "logs").mkdir(exist_ok=True)
     (ROOT / "logs" / "language_last.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     print(json.dumps(report, indent=2), flush=True)  # ASCII only: a Windows log file may not take Cyrillic
