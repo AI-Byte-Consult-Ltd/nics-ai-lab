@@ -14,6 +14,19 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.13.0] - 2026-11-22
+
+NICS Language: our own task examples for the first task (journal post about a demo trade).
+
+### Added
+- `src/nics/text/examples.py`: phrase bank written by us in ru, en, es, bg, pt and a
+  composer of "facts in, text out" records. The model writes value slots, never a number,
+  a ticker or the trader's note; `check()` validates a generated post by code (exact
+  slots, no digits, only `<b>`/`<i>`, length) and `fill()` puts escaped real values in.
+- `scripts/make_language_examples.py` and task records in `scripts/encode_corpus.py`
+  (about 4 % of the training tokens), so the first model learns the task format together
+  with general language. The night run writes them automatically.
+
 ## [0.12.0] - 2026-11-22
 
 NICS Language: first training corpus and unattended nightly training on the laptop.

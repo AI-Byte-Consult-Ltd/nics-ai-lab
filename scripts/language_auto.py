@@ -5,7 +5,7 @@ scripts\\windows\\language_train.bat. It does whatever is still missing, in orde
 
   1. corpus     download the licence-checked text sources (prepare_language_corpus.py)
   2. tokenizer  train our own tokenizer on all languages that have text
-  3. tokens     encode the first-wave languages into token files
+  3. tokens     write our own task examples, encode them and the first-wave languages into token files
   4. training   continue (or start) the micro model until the stop time
 
 Every step is skipped when its result already exists, so a night that was interrupted
@@ -94,6 +94,7 @@ def prepare(cfg, push_report: bool) -> None:
         # every language gets the same share, so the smallest second-wave sample sets the budget
         step("tokenizer", "scripts/train_tokenizer.py", "--vocab-size", str(cfg["model"]["vocab_size"]),
              "--max-mb-per-lang", "16", "--out", str(tokenizer))
+    step("examples", "scripts/make_language_examples.py")
     step("tokens", "scripts/encode_corpus.py", "--tokenizer", str(tokenizer), "--out", str(tokens_dir),
          "--langs", ",".join(FIRST_WAVE))
 
