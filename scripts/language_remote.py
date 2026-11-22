@@ -70,6 +70,10 @@ def decide(req: dict | None, done_id: str, now: datetime, local_hour: int) -> tu
 
 def start(minutes: int, root: Path = ROOT) -> None:
     """Start the run as its own process, so the 2-minute task is not held."""
+    try:  # run the newest code and sources, like the manual .bat does; no network is not a reason to skip
+        subprocess.run(["git", "pull", "--ff-only", "--quiet"], cwd=root, timeout=120, capture_output=True)
+    except Exception:  # noqa: BLE001
+        pass
     flags = 0
     if sys.platform == "win32":
         flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
