@@ -41,7 +41,7 @@ def test_every_source_states_a_licence_and_known_kind():
                   and s["max_text_bytes"] >= 50_000_000}
     assert first_wave == set(language_auto.FIRST_WAVE)
     for s in sources:
-        assert s["kind"] in ("local", "gutenberg", "opus_mono") and s["license"]
+        assert s["kind"] in ("local", "gutenberg", "opus_mono", "github_md") and s["license"]
         if s["kind"] == "opus_mono":
             assert s["url"].startswith("https://") and s["attribution"] and s["license_checked"]
 
@@ -105,6 +105,24 @@ def test_journal_examples_are_valid_and_filled_safely():
                             "note": "<b>x</b> & <|stop|>"})
     assert "&lt;b&gt;x&lt;/b&gt; &amp; &lt;|stop|&gt;" in filled and "<|" not in filled
     assert ex.prompt("bg", "sell", 1, False, True) == "<|in|><|task:journal|><|lang:bg|> dir=sell targets=one conf=no note=yes<|out|>"
+
+
+def test_github_md_reads_one_folder_and_skips_excluded(tmp_path=None):
+    import tempfile
+    import zipfile
+    import prepare_language_corpus as corpus
+    folder = Path(tempfile.mkdtemp())
+    with zipfile.ZipFile(folder / "repo.zip", "w") as z:
+        z.writestr("repo-main/Глава I.md", "первая")
+        z.writestr("repo-main/ОГЛАВЛЕНИЕ.md", "список")
+        z.writestr("repo-main/English/Chapter I.md", "first")
+        z.writestr("repo-main/English/glossary.md", "words")
+        z.writestr("repo-main/epub/book.epub", "x")
+    url = (folder / "repo.zip").as_uri()
+    ru = list(corpus.docs_github_md({"url": url, "lang": "ru", "subdir": "", "exclude": ["оглавление"]}))
+    en = list(corpus.docs_github_md({"url": url, "lang": "en", "subdir": "English", "exclude": ["glossary"]}))
+    assert [d[2] for d in ru] == ["первая"] and [d[2] for d in en] == ["first"]
+    assert ru[0][0] == "ru" and en[0][0] == "en"
 
 
 if __name__ == "__main__":

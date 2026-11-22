@@ -245,5 +245,40 @@
     "commercial_use": true,
     "license_checked": "2026-11-21",
     "notes": "Put files under <path>/<lang>/*.txt (lang = one of the 12 site languages, e.g. ru, en, es, bg, pt). Text written by bot users must never be placed here."
+  },
+  {
+    "source_id": "own-book-ru",
+    "name": "Alexander Lunin's own novel, Russian original",
+    "lang": "ru",
+    "kind": "github_md",
+    "url": "https://codeload.github.com/AI-Byte-Consult-Ltd/the-book/zip/refs/heads/main",
+    "license": "Own work of the company's founder Alexander Lunin (author of the book). He gave permission to use it for training NICS Language on 2026-11-22.",
+    "license_url": "https://github.com/AI-Byte-Consult-Ltd/the-book",
+    "attribution": "Novel by Alexander Lunin, repository AI-Byte-Consult-Ltd/the-book.",
+    "commercial_use": true,
+    "license_checked": "2026-11-22",
+    "subdir": "",
+    "exclude": [
+      "оглавление"
+    ],
+    "notes": "Author-owned text, the first literary (not official) Russian in the corpus. Chapters only, the table of contents is left out."
+  },
+  {
+    "source_id": "own-book-en",
+    "name": "Alexander Lunin's own novel, English edition",
+    "lang": "en",
+    "kind": "github_md",
+    "url": "https://codeload.github.com/AI-Byte-Consult-Ltd/the-book/zip/refs/heads/main",
+    "license": "Own work of the company's founder Alexander Lunin (author of the book). He gave permission to use it for training NICS Language on 2026-11-22.",
+    "license_url": "https://github.com/AI-Byte-Consult-Ltd/the-book",
+    "attribution": "Novel by Alexander Lunin, repository AI-Byte-Consult-Ltd/the-book.",
+    "commercial_use": true,
+    "license_checked": "2026-11-22",
+    "subdir": "English",
+    "exclude": [
+      "front matter",
+      "glossary"
+    ],
+    "notes": "Author-owned text. Chapters only: front matter and glossary are left out."
   }
 ]
