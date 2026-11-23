@@ -14,6 +14,14 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.19.1] - 2026-11-23
+
+### Added
+- `scripts/geo_compare.py` and `scripts/windows/geo_compare.bat`: fair comparison of the locally
+  trained NICS Vision Geo model with a web export (by default the model in the phone app) on the
+  same test photos, museum photos and open media archive photos separately, answers limited to
+  the classes both models know. Read-only: nothing is trained or sent.
+
 ## [0.19.0] - 2026-11-23
 
 ### Added
