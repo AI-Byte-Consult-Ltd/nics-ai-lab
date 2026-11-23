@@ -3,6 +3,7 @@
   python scripts/train_geo.py                       # full config
   python scripts/train_geo.py --max-minutes 60      # stop after an hour, keep the best epoch
   python scripts/train_geo.py --gentle              # low priority, half of the threads (daytime)
+  python scripts/train_geo.py --resend              # no training: report of the latest finished run
 
 Writes experiments/vision/nics-vision-geo-micro/<run id>/ (model.pt, model_meta.json,
 report.json; not in git) and sends a short snapshot to the CEO desk as model "nics-vision".
@@ -55,8 +56,18 @@ def main() -> int:
     ap.add_argument("--threads", type=int, default=0)
     ap.add_argument("--gentle", action="store_true")
     ap.add_argument("--no-push", action="store_true")
+    ap.add_argument("--resend", action="store_true", help="no training: print and send the report of the latest run")
     args = ap.parse_args()
+    for stream in (sys.stdout, sys.stderr):      # Windows console/log is cp1252 by default: Russian text must not crash
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     cfg = load_config(args.config)
+    if args.resend:
+        runs = sorted((ROOT / "experiments" / "vision" / cfg["model_id"]).glob("exp-*/report.json"))
+        if not runs:
+            print("no finished run found")
+            return 1
+        return finish(json.loads(runs[-1].read_text(encoding="utf-8")), runs[-1].parent.name, args.no_push)
     threads = gentle() if args.gentle else (args.threads or max(1, (os.cpu_count() or 2) - 2))
     torch.set_num_threads(threads)
     images, meta, summary = dataset.load_built(ROOT / cfg["data"]["built_dir"])
@@ -67,14 +78,18 @@ def main() -> int:
     run.mkdir(parents=True, exist_ok=True)
     print(f"run {run.name}, {threads} threads")
     report = train.train(images, meta, summary, tc, run, max_minutes=args.max_minutes)
+    return finish(report, run.name, args.no_push)
+
+
+def finish(report: dict, run_name: str, no_push: bool) -> int:
     text = snapshot_text(report)
     print(text)
     print(json.dumps(report["test"]["top_confusions"][:5], ensure_ascii=False))
-    if not args.no_push:
+    if not no_push:
         small = {k: report[k] for k in ("model", "parameters", "classes", "image_size", "temperature", "epochs_run",
                                         "minutes", "best_epoch", "chance_top1", "data")} | \
-                {"val": report["val"]["calibrated"], "test": report["test"]["calibrated"], "run": run.name}
-        push.push("nics-vision", "snapshot", small, text, cycle=run.name)
+                {"val": report["val"]["calibrated"], "test": report["test"]["calibrated"], "run": run_name}
+        push.push("nics-vision", "snapshot", small, text, cycle=run_name)
     return 0
 
 

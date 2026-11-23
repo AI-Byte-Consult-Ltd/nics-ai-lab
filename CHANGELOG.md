@@ -14,6 +14,14 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.18.1] - 2026-11-23
+
+### Fixed
+- `scripts/train_geo.py` crashed on Windows after a finished run while printing the Russian
+  summary (console encoding cp1252), so the report never reached the CEO desk. Output is now
+  UTF-8 with replacement. New `--resend` (and `scripts/windows/geo_report.bat`) prints and sends
+  the report of the latest finished run without training again.
+
 ## [0.18.0] - 2026-11-22
 
 ### Added
