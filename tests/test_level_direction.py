@@ -81,7 +81,7 @@ def main() -> None:
                 ts = (datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(hours=i)).isoformat()
                 w.writerow(["vantage_mt5", "XAU/USD", "1h", ts, 100, 101, 99, 100, 5, 100.0, 100.02])
         r = subprocess.run([sys.executable, str(ROOT / "scripts/level_direction_research.py"), "--snapshot", str(tmp),
-                            "--from-year", "2015", "--no-push", "--out", str(tmp / "out")], capture_output=True, text=True)
+                            "--from-year", "2015", "--no-push", "--no-yahoo", "--out", str(tmp / "out")], capture_output=True, text=True)
         assert r.returncode == 0, r.stderr[-2000:]
         assert "как сейчас" in r.stdout and "spread 0.02" in r.stdout, r.stdout[-1500:]
         assert (tmp / "out" / "level_direction_last.json").exists()
