@@ -15,6 +15,7 @@ import argparse
 import json
 import sys
 import time
+import urllib.request
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,7 +29,47 @@ from nics.market import data as market  # noqa: E402
 from nics.market import level_direction as ld  # noqa: E402
 from nics.telemetry.push import push  # noqa: E402
 
-GROUP = {"XAU/USD": "metals", "XAG/USD": "metals", "UKOUSDft": "oil", "BTC/USD": "crypto", "US500": "indices",
+YAHOO = {"XAU/USD": "GC=F", "XAG/USD": "SI=F", "COPPER": "HG=F", "UKOUSDft": "BZ=F", "BTC/USD": "BTC-USD",
+         "ETH/USD": "ETH-USD", "US500": "^GSPC", "US100": "^NDX", "US30": "^DJI", "GER40": "^GDAXI", "JP225": "^N225",
+         "HK50": "^HSI", "EUR/USD": "EURUSD=X", "GBP/USD": "GBPUSD=X", "USD/JPY": "JPY=X", "USD/CHF": "CHF=X",
+         "USD/CAD": "CAD=X", "AUD/USD": "AUDUSD=X", "EUR/JPY": "EURJPY=X", "GBP/JPY": "GBPJPY=X", "NVIDIA": "NVDA",
+         "TSLA": "TSLA", "META": "META", "AMAZON": "AMZN", "NFLX": "NFLX", "AMD": "AMD", "AVGO": "AVGO", "ASML": "ASML",
+         "AMAT": "AMAT", "LRCX": "LRCX", "MU": "MU", "TSM": "TSM", "DELL": "DELL", "SMCI": "SMCI"}
+UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) nics-ai-lab"}
+
+
+def yahoo_h1(sym: str, cache: Path):
+    """About two years of public hourly bars (the provider keeps no more). Cached for the day.
+
+    Public data, internal research only, not redistributed (docs/dataset-register.md)."""
+    dest = cache / (YAHOO[sym].replace("^", "").replace("=", "_") + "_" + datetime.now(timezone.utc).strftime("%Y%m%d") + ".json")
+    if dest.exists():
+        res = json.loads(dest.read_text(encoding="utf-8"))
+    else:
+        now = int(time.time())
+        url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.request.quote(YAHOO[sym])}"
+               f"?period1={now - 728 * 86400}&period2={now}&interval=1h")
+        time.sleep(1.0)
+        with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
+            res = json.loads(r.read().decode("utf-8"))["chart"]["result"][0]
+        cache.mkdir(parents=True, exist_ok=True)
+        dest.write_text(json.dumps({"timestamp": res.get("timestamp"), "indicators": res["indicators"]}), encoding="utf-8")
+    q = res["indicators"]["quote"][0]
+    rows = []
+    for i, t in enumerate(res.get("timestamp") or []):
+        h, lo, c = q["high"][i], q["low"][i], q["close"][i]
+        if None in (h, lo, c) or not (h >= lo > 0):
+            continue
+        rows.append((int(t) // 3600 * 3600, float(h), float(lo), float(c)))
+    rows.sort()
+    a = np.array(rows, dtype=np.float64)
+    if len(a) < 2:
+        return None
+    a = a[np.concatenate([[True], np.diff(a[:, 0]) > 0])]
+    return a[:-1]  # drop the still-forming hour
+
+
+GROUP = {"COPPER": "metals", "ETH/USD": "crypto", "XAU/USD": "metals", "XAG/USD": "metals", "UKOUSDft": "oil", "BTC/USD": "crypto", "US500": "indices",
          "US100": "indices", "US30": "indices", "GER40": "indices", "JP225": "indices", "HK50": "indices"}
 ERAS = (("2008-2013", 2008, 2014), ("2014-2019", 2014, 2020), ("2020-2026", 2020, 2100))
 STATE_RU = {(-1, 1): "короткий вниз, большой вверх (откат)", (-1, -1): "оба вниз", (1, 1): "оба вверх",
@@ -98,7 +139,8 @@ def summarise(trades: dict[str, list], states: list[tuple]) -> dict:
 
 
 def russian(s: dict, meta: dict) -> str:
-    L = [f"Метод уровней и правило направления на часовой истории {meta['from']}–{meta['to']}, "
+    L = [f"{'Длинная история' if meta.get('set') == 'long' else 'Два года, все инструменты'}: "
+         f"метод уровней и правило направления на часовой истории {meta['from']}–{meta['to']}, "
          f"инструментов {meta['symbols']}. Проверка на прошлом, не прогноз. Стоп на свече входа считается убытком, "
          "поэтому числа занижены одинаково для всех вариантов: сравнивать варианты между собой."]
     names = {"base": "как сейчас", "pullback": "откат в большом росте = покупка", "no_low": "без шорта у минимума",
@@ -110,6 +152,17 @@ def russian(s: dict, meta: dict) -> str:
         L.append(f"{names.get(v, v)}: сделок {a['n']}, итог {a['R']:+}R, стопов {a['stops_pct']} %; "
                  f"покупки {lg.get('n', 0)} / {lg.get('R', 0):+}R, продажи {sh.get('n', 0)} / {sh.get('R', 0):+}R; "
                  f"направление без стопа {a['fwd']:+} ATR (t {a['fwd_t']})")
+    groups = sorted({g for o in s["variants"].values() for g in o.get("group", {})})
+    if len(groups) > 1:
+        gname = {"metals": "металлы", "indices": "индексы", "stocks": "акции", "forex": "валюты", "crypto": "крипто", "oil": "нефть"}
+        L.append("По группам, направление без стопа в ATR (t, сделок): как сейчас / новое правило")
+        for g in groups:
+            for side, ru in (("long", "покупки"), ("short", "продажи")):
+                cell = []
+                for v in ("base", "rule"):
+                    x = s["variants"].get(v, {}).get("group", {}).get(g, {}).get(side)
+                    cell.append(f"{x['fwd']:+} ({x['fwd_t']}, {x['n']})" if x and x.get("n") else "нет")
+                L.append(f"  {gname.get(g, g)}, {ru}: {cell[0]} / {cell[1]}")
     L.append("Куда шёл рынок за следующие сутки (в дневных ATR, плюс = рост):")
     for o in s["states"].values():
         if o["all"]["n"]:
@@ -128,6 +181,8 @@ def main() -> None:
     ap.add_argument("--variants", default=",".join(ld.VARIANTS))
     ap.add_argument("--no-push", action="store_true")
     ap.add_argument("--out", default=str(ROOT / "experiments" / "research"))
+    ap.add_argument("--no-yahoo", action="store_true", help="skip the two-year hourly download")
+    ap.add_argument("--cache", default=str(ROOT / "data" / "cache" / "public_h1"))
     args = ap.parse_args()
     if args.snapshot:
         snap = Path(args.snapshot)
@@ -145,9 +200,29 @@ def main() -> None:
     for s in series:
         if not s.public and (s.spread > 0).any():
             spreads[s.symbol] = float(np.median(s.spread[s.spread > 0]))
-    trades = {v: [] for v in variants}
-    states: list[tuple] = []
-    used, t_min, t_max = [], None, None
+    sets = {"long": {"trades": {v: [] for v in variants}, "states": [], "used": [], "t": [None, None]},
+            "two_years": {"trades": {v: [] for v in variants}, "states": [], "used": [], "t": [None, None]}}
+
+    def run_one(sym: str, t, h, lo, c, key: str, begin: float) -> None:
+        t0 = time.time()
+        p = ld.prepare(t, h, lo, c)
+        if p is None:
+            print(f"  {sym}: history too short, skipped", flush=True)
+            return
+        spread = spreads.get(sym, 0.0)
+        tr, st = ld.run_symbol(p, spread, variants, begin)
+        g = GROUP.get(sym) or ("forex" if "/" in sym else "stocks")
+        S = sets[key]
+        for v in variants:
+            for x in tr[v]:
+                x["symbol"], x["group"] = sym, g
+            S["trades"][v].extend(tr[v])
+        S["states"].extend(st)
+        S["used"].append(sym)
+        a, b = float(p.t[min(int(np.searchsorted(p.t, begin)), len(p.t) - 1)]), float(p.t[-1])
+        S["t"] = [a if S["t"][0] is None else min(S["t"][0], a), b if S["t"][1] is None else max(S["t"][1], b)]
+        print(f"  {sym} [{key}]: {len(p.t)} hours, base trades {len(tr[variants[0]])}, spread {spread:g}, {time.time() - t0:.0f}s", flush=True)
+
     for s in series:
         if not s.public or (only and s.symbol not in only):
             continue
@@ -155,45 +230,55 @@ def main() -> None:
         if keep.sum() < 24 * 400:
             print(f"  {s.symbol}: only {int(keep.sum())} hourly bars, skipped", flush=True)
             continue
-        t0 = time.time()
-        p = ld.prepare(s.t[keep], s.h[keep], s.l[keep], s.c[keep])
-        if p is None:
-            continue
-        spread = spreads.get(s.symbol, 0.0)
-        tr, st = ld.run_symbol(p, spread, variants, start)
-        g = GROUP.get(s.symbol) or ("forex" if "/" in s.symbol else "stocks")
-        for v in variants:
-            for x in tr[v]:
-                x["symbol"], x["group"] = s.symbol, g
-            trades[v].extend(tr[v])
-        states.extend(st)
-        used.append(s.symbol)
-        a, b = float(p.t[max(int(np.searchsorted(p.t, start)), 0)]), float(p.t[-1])
-        t_min, t_max = (a if t_min is None else min(t_min, a)), (b if t_max is None else max(t_max, b))
-        print(f"  {s.symbol}: {len(p.t)} hours, base trades {len(tr[variants[0]])}, spread {spread:g}, {time.time() - t0:.0f}s", flush=True)
-    if not used:
-        sys.exit("no public hourly series in the snapshot (Dukascopy history is fetched by the nightly cycle)")
+        run_one(s.symbol, s.t[keep], s.h[keep], s.l[keep], s.c[keep], "long", start)
+    if not args.no_yahoo:
+        print("two years of public hourly bars for every instrument ...", flush=True)
+        for sym in YAHOO:
+            if only and sym not in only:
+                continue
+            try:
+                a = yahoo_h1(sym, Path(args.cache))
+            except Exception as e:  # one instrument without data must not stop the rest
+                print(f"  {sym}: public hourly bars not available ({type(e).__name__})", flush=True)
+                continue
+            if a is None or len(a) < 2500:
+                print(f"  {sym}: too few hourly bars, skipped", flush=True)
+                continue
+            run_one(sym, a[:, 0], a[:, 1], a[:, 2], a[:, 3], "two_years", 0.0)
+    if not sets["long"]["used"] and not sets["two_years"]["used"]:
+        sys.exit("no public hourly history: neither the long cache nor the two-year download gave data")
     fmt = lambda ts: datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m")  # noqa: E731
-    meta = {"snapshot": snap.name, "symbols": len(used), "symbol_list": used, "from": fmt(t_min), "to": fmt(t_max),
-            "params": ld.PARAMS, "note": "Research on past public candles, not a forecast. A stop inside the fill "
-            "bar counts as a loss (pessimistic for every variant). fwd = 24 h move after the fill in daily ATR."}
-    summary = {"meta": meta, **summarise(trades, states)}
-    text = russian(summary, meta)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "level_direction_last.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False), encoding="utf-8")
+    full, slim, texts = {}, {}, []
+
+    def c(x):  # compact rows keep the dashboard record small: n, R, stops %, fwd, fwd t
+        if isinstance(x, dict) and "n" in x:
+            return [x["n"], x.get("R", x.get("move", 0)), x.get("stops_pct", x.get("t", 0)), x.get("fwd", 0), x.get("fwd_t", 0)]
+        return {k: c(v) for k, v in x.items()} if isinstance(x, dict) else x
+
+    for key, S in sets.items():
+        if not S["used"]:
+            continue
+        meta = {"snapshot": snap.name, "set": key, "symbols": len(S["used"]), "symbol_list": S["used"],
+                "from": fmt(S["t"][0]), "to": fmt(S["t"][1]), "params": ld.PARAMS,
+                "note": "Research on past public candles, not a forecast. A stop inside the fill bar counts as a "
+                        "loss (pessimistic for every variant). fwd = 24 h move after the fill bar in daily ATR."}
+        summary = {"meta": meta, **summarise(S["trades"], S["states"])}
+        full[key] = summary
+        texts.append(russian(summary, meta))
+        slim[key] = {"meta": {k: meta[k] for k in ("symbols", "from", "to")},
+                     "variants": {v: c({k: o[k] for k in (("all", "long", "short", "era", "group") if key == "long" else ("all", "long", "short", "group"))})
+                                  for v, o in summary["variants"].items()},
+                     "base_by_state": c(summary["base_by_state"]),
+                     "states": c({k: {kk: vv for kk, vv in o.items() if kk != "era"} for k, o in summary["states"].items()})}
+    text = "\n\n".join(texts)
+    (out / "level_direction_last.json").write_text(json.dumps(full, indent=1, ensure_ascii=False), encoding="utf-8")
     (out / "level_direction_last.txt").write_text(text + "\n", encoding="utf-8")
     print(text)
     if not args.no_push:
-        def c(x):  # compact rows keep the dashboard record small: n, R, stops %, fwd, fwd t
-            if isinstance(x, dict) and "n" in x:
-                return [x["n"], x.get("R", x.get("move", 0)), x.get("stops_pct", x.get("t", 0)), x.get("fwd", 0), x.get("fwd_t", 0)]
-            return {k: c(v) for k, v in x.items()} if isinstance(x, dict) else x
-        slim = {"meta": {k: meta[k] for k in ("snapshot", "symbols", "from", "to")},
-                "cols": "n, R (or move), stops % (or t), fwd, fwd t",
-                "variants": {v: c({k: o[k] for k in ("all", "long", "short", "era", "group")}) for v, o in summary["variants"].items()},
-                "base_by_state": c(summary["base_by_state"]), "states": c(summary["states"])}
-        push("NICS Trading", "level_direction", slim, text, cycle=snap.name)
+        slim["cols"] = "n, R (or move), stops % (or t), fwd, fwd t"
+        push("nics-trading", "eval", slim, text, cycle=f"level_direction {snap.name}")
 
 
 if __name__ == "__main__":

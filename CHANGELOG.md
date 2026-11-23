@@ -14,6 +14,17 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.19.2] - 2026-11-23
+
+### Fixed
+- `scripts/level_direction_research.py`: the first laptop run covered one instrument only,
+  because the long hourly cache on the laptop holds EUR/USD alone. The script now also
+  downloads about two years of public hourly bars for all 34 instruments (Yahoo chart API,
+  cached per day in `data/cache/public_h1`, internal research only, not redistributed) and
+  reports them as a second set with results by asset group. `--no-yahoo` skips it.
+- The summary now reaches the private dashboard: it is sent as model `nics-trading`, kind
+  `eval` (the previous names were not on the dashboard's list and got HTTP 403).
+
 ## [0.19.1] - 2026-11-23
 
 ### Added
