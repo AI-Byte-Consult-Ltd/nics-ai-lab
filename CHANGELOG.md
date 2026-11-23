@@ -14,6 +14,19 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.19.0] - 2026-11-23
+
+### Added
+- `src/nics/market/level_direction.py` and `scripts/level_direction_research.py`: the level
+  method replayed on public hourly history since 2008 with five ways to choose the direction
+  of a plan (the live rule, pullback inside a long-term uptrend treated as a buy, no shorts at
+  the low, both together, long-term trend only). Our broker intraday history is ten falling
+  weeks, so a direction rule cannot be judged on it. Reports R with a pessimistic fill-bar
+  rule, a stop-free 24-hour direction check, results by era, asset group and market state.
+  Research only: nothing is sent to the scanner, the level method or any EA.
+  `scripts/windows/level_direction.bat` runs it on the laptop and sends the summary to the
+  private dashboard. `tests/test_level_direction.py` (offline, includes a no-look-ahead check).
+
 ## [0.18.1] - 2026-11-23
 
 ### Fixed
