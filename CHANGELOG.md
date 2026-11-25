@@ -14,6 +14,15 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.20.1] - 2026-11-25
+
+### Added
+- NICS Vision Geo: `scripts/train_geo.py --continue` and `scripts/windows/geo_continue.bat`
+  continue training from the weights of the latest run (same classes, lower learning rate,
+  30 epochs by default) instead of random weights. The starting weights are scored on
+  validation first and stay the result unless a later epoch beats them, so a continued run is
+  never worse on validation; the report says which happened.
+
 ## [0.20.0] - 2026-11-25
 
 ### Added
