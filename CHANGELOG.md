@@ -14,6 +14,22 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.20.0] - 2026-11-25
+
+### Added
+- False-breakout research on public hourly history (`src/nics/market/false_breakout.py`,
+  `scripts/false_breakout_research.py`, `scripts/windows/false_breakout.bat`, test
+  `tests/test_false_breakout.py`). Every fresh close beyond the 5-day low / high (without the last
+  6 hours), both sides, with 12 features known at the close of the breakout bar (level touches,
+  age, round number, hour, D1 and H4 trend, extension from D1 EMA20, depth, bar range, close
+  position, approach speed, tick-volume ratio). Label: close back beyond the level within 6 h
+  before a 1 ATR move. Compares entry constructions on the same events (market now, wait for a
+  second close, retest limit) and fits a logistic "probability of false" on years before 2018,
+  judged only on 2018-2026. Research only, nothing is sent to trading. `--fetch` first adds
+  missing Dukascopy hourly months for all instruments (cached).
+- Lesson from the synthetic test, written into the module: the SHARE of false breakouts is
+  predictable even on a random walk, so features are judged by R, not by that share.
+
 ## [0.19.2] - 2026-11-23
 
 ### Fixed
