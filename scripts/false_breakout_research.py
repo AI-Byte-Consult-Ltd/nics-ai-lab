@@ -82,7 +82,11 @@ def stable_features(s: dict, min_n: int = 150, min_gap: int = 5) -> list[str]:
 def russian(name: str, s: dict, meta: dict) -> str:
     a = s["all"]
     L = [f"{name}: {meta['symbols']} инструментов, {meta['from']}–{meta['to']}, пробоев {a['n']}. Проверка на прошлом, не прогноз; "
-         "часовые свечи, стоп внутри одной свечи с тейком считается убытком."]
+         "часовые свечи; если стоп и тейк оба внутри одной свечи, порядок неизвестен и сделка считается за 0R."]
+    if meta.get("ambiguous_pct") is not None:
+        L.append(f"Таких неоднозначных сделок {meta['ambiguous_pct']} % от всех входов.")
+    if meta.get("skipped"):
+        L.append("Без длинной истории (пропущены): " + ", ".join(meta["skipped"]))
     L.append("Важно: долю ложных частично можно угадать даже на случайных данных (мелкий пробой чаще возвращается), "
              "поэтому признак полезен, только если меняет R сделок, а не только долю ложных.")
     L.append(f"Ложных (вернулись за уровень за {fb.PARAMS['fb_h']} ч раньше хода на 1 ATR): {a['false_pct']} %; "
@@ -91,14 +95,15 @@ def russian(name: str, s: dict, meta: dict) -> str:
         x = s["side"][k]
         if x["n"]:
             c = x["constructions"]
-            L.append(f"  {ru}: {x['n']}, ложных {x['false_pct']} %; сразу {c['base'].get('R', 0):+}R, "
-                     f"ждать 2 закрытия {c['confirm2'].get('R', 0):+}R (вход в {c['confirm2']['filled']}), "
-                     f"ретест {c['retest'].get('R', 0):+}R (вход в {c['retest']['filled']})")
+            L.append(f"  {ru}: {x['n']}, ложных {x['false_pct']} %; сразу {c['base'].get('R', 0):+}R "
+                     f"({c['base']['avg_filled']:+} на сделку), ждать 2 закрытия {c['confirm2'].get('R', 0):+}R "
+                     f"(вход в {c['confirm2']['filled']}, {c['confirm2']['avg_filled']:+} на сделку), "
+                     f"ретест {c['retest'].get('R', 0):+}R (вход в {c['retest']['filled']}, {c['retest']['avg_filled']:+} на сделку)")
     if "constructions_in" in s:
         for per, key in (("до раздела", "constructions_in"), ("после раздела", "constructions_out")):
             c = s[key]
-            L.append(f"  {per}: сразу {c['base'].get('avg', 0):+}, 2 закрытия {c['confirm2'].get('avg', 0):+}, "
-                     f"ретест {c['retest'].get('avg', 0):+} R на пробой")
+            L.append(f"  {per}, R на сделку: сразу {c['base']['avg_filled']:+}, 2 закрытия {c['confirm2']['avg_filled']:+}, "
+                     f"ретест {c['retest']['avg_filled']:+}")
         m = s["model"]
         if "out" in m:
             t = m["out"]["tercile_by_false_probability"]
@@ -155,21 +160,26 @@ def main() -> None:
 
     def run_one(sym, t, h, lo, c, v, key, begin):
         t0 = time.time()
+        a0 = fb.AMBIGUOUS[0]
         ev = [e for e in fb.events(t, h, lo, c, v, spreads.get(sym, 0.0)) if e["t"] >= begin]
         for e in ev:
             e["symbol"], e["group"] = sym, group_of(sym)
         S = sets[key]
         S["ev"].extend(ev); S["used"].append(sym)
+        S["amb"] = S.get("amb", 0) + fb.AMBIGUOUS[0] - a0
         if ev:
             S["t"] = [min(x for x in (S["t"][0], ev[0]["t"]) if x is not None), max(x for x in (S["t"][1], ev[-1]["t"]) if x is not None)]
         print(f"  {sym} [{key}]: {len(t)} hours, breakouts {len(ev)}, {time.time() - t0:.0f}s", flush=True)
 
+    skipped: list[str] = []
+    fb.AMBIGUOUS[0] = 0
     for s in series:
         if not s.public or (only and s.symbol not in only):
             continue
         keep = ~((s.h == s.l) & (s.v == 0)) & (s.t >= start - 400 * 86400)
         if keep.sum() < 24 * 400:
             print(f"  {s.symbol}: only {int(keep.sum())} hourly bars, skipped", flush=True)
+            skipped.append(f"{s.symbol} ({int(keep.sum())} ч)")
             continue
         run_one(s.symbol, s.t[keep], s.h[keep], s.l[keep], s.c[keep], s.v[keep], "long", start)
     if not args.no_yahoo:
@@ -195,7 +205,9 @@ def main() -> None:
         if not S["ev"]:
             continue
         meta = {"snapshot": snap.name, "symbols": len(S["used"]), "symbol_list": S["used"], "from": fmt(S["t"][0]),
-                "to": fmt(S["t"][1]), "split": str(args.split_year) if key == "long" else None, "params": fb.PARAMS}
+                "to": fmt(S["t"][1]),
+                "ambiguous_pct": round(100 * S.get("amb", 0) / max(1, sum(e[k] is not None for e in S["ev"] for k in ("base", "confirm2", "retest")))),
+                "skipped": skipped if key == "long" else [], "split": str(args.split_year) if key == "long" else None, "params": fb.PARAMS}
         sp = split_t if key == "long" and S["t"][0] < split_t < S["t"][1] else None
         if sp is None:
             meta["split"] = None

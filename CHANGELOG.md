@@ -23,6 +23,18 @@ no silent, unversioned changes.
   validation first and stay the result unless a later epoch beats them, so a continued run is
   never worse on validation; the report says which happened.
 
+## [0.20.1] - 2026-11-25
+
+### Fixed
+- `false_breakout`: the first laptop run gave about -0.3 R per trade for every entry
+  construction (t about -19). Most of it came from counting a trade as a loss whenever its stop
+  and take were both inside one hourly bar, which is frequent right after a breakout. Such trades
+  now count as 0 R (unknown order) and their share is printed. Constructions are also shown per
+  filled trade: with a negative average, a construction that enters less often looked better
+  only because it traded less.
+- The summary lists instruments skipped for lack of long history (the first run had long
+  history for 2 instruments only).
+
 ## [0.20.0] - 2026-11-25
 
 ### Added

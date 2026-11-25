@@ -17,7 +17,10 @@ breakout direction.
 
 Trade (for R): entry at the close of the breakout bar, stop and take 1 ATR(H1) each side, 24 h
 hold, costs 1.2 spreads. Hourly bars cannot show what came first inside an hour: when stop and
-take are both inside one bar the trade counts as a loss (pessimistic, same for all variants).
+take are both inside one bar the trade counts as 0 R (unknown order) and the share of such
+trades is reported. A construction that enters less often is compared both on all events
+(missed = 0 R) and per filled trade, because with a negative average fewer trades alone look
+"better".
 
 Entry constructions compared on the same events (no event is dropped by a rule; an entry that
 never comes is a missed trade, counted as 0 R):
@@ -156,20 +159,34 @@ def events(t, h, lo, c, v=None, spread: float = 0.0, P: dict | None = None) -> l
     return out
 
 
+AMBIGUOUS = [0]   # trades whose stop and take were both inside one bar (reset by the caller)
+AMBIGUOUS_R = 0.0
+
+
 def _hit(h, lo, j, d, e, a, spread) -> bool:
     """Stop of a trade opened at e was touched in bar j (shorts exit at the ask)."""
     return (h[j] + spread >= e + a) if d < 0 else (lo[j] <= e - a)
 
 
 def _trade(h, lo, c, j0, d, e, a, spread, cost, hold) -> float | None:
-    """R of a 1:1 trade (stop and take 1 ATR) from bar j0; stop first when both are inside one bar."""
+    """R of a 1:1 trade (stop and take 1 ATR) from bar j0.
+
+    When stop and take are both inside one hourly bar the order is unknown. v0.20.0 counted that
+    as a loss; on real data after breakouts this happens often and pushed every variant to about
+    -0.3 R. Since v0.20.1 such a trade counts as AMBIGUOUS_R (0 R, the average of +1 and -1 minus
+    costs) and is counted in AMBIGUOUS so the share is visible."""
     n = len(c)
     if j0 >= n:
         return None
     for j in range(j0, min(n, j0 + hold)):
-        if _hit(h, lo, j, d, e, a, spread):
+        stop = _hit(h, lo, j, d, e, a, spread)
+        take = (lo[j] <= e - a) if d < 0 else (h[j] >= e + a)
+        if stop and take:
+            AMBIGUOUS[0] += 1
+            return AMBIGUOUS_R - cost / a
+        if stop:
             return -1.0 - cost / a
-        if (lo[j] <= e - a) if d < 0 else (h[j] >= e + a):
+        if take:
             return 1.0 - cost / a
     j = min(n, j0 + hold) - 1
     return float(d * (c[j] - e) - cost) / a
@@ -213,7 +230,8 @@ def constructions(ev: list[dict]) -> dict:
     for k in ("base", "confirm2", "retest"):
         r = [e[k] if e[k] is not None else 0.0 for e in ev]
         filled = sum(e[k] is not None for e in ev)
-        out[k] = {**_r(r), "filled": filled}
+        per = [e[k] for e in ev if e[k] is not None]
+        out[k] = {**_r(r), "filled": filled, "avg_filled": round(float(np.mean(per)), 3) if per else 0.0}
     return out
 
 
