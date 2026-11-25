@@ -151,8 +151,13 @@ def confusions(logits: torch.Tensor, y: torch.Tensor, classes: list[str], top: i
 
 
 def train(images: np.ndarray, meta: list[dict], summary: dict, cfg: dict, out_dir: Path,
-          log: Callable[[str], None] = print, max_minutes: float | None = None) -> dict:
-    """Train GeoNet on a built set. Writes model.pt (state + config), model_meta.json and report.json."""
+          log: Callable[[str], None] = print, max_minutes: float | None = None,
+          init_state: dict | None = None, init_from: str | None = None) -> dict:
+    """Train GeoNet on a built set. Writes model.pt (state + config), model_meta.json and report.json.
+
+    With init_state (weights of an earlier run on the same classes) training continues from them
+    instead of random weights. The starting weights are scored on validation first and kept as the
+    result unless a later epoch beats them, so a continued run is never worse on validation."""
     torch.manual_seed(int(cfg.get("seed", 42)))
     gen = torch.Generator().manual_seed(int(cfg.get("seed", 42)))
     classes: list[str] = summary["classes"]
@@ -168,6 +173,8 @@ def train(images: np.ndarray, meta: list[dict], summary: dict, cfg: dict, out_di
 
     mc = GeoNetConfig(num_classes=len(classes), num_groups=len(groups), **(cfg.get("model") or {}))
     model = GeoNet(mc)
+    if init_state is not None:
+        model.load_state_dict(init_state)
     n_params = count_params(model)
     log(f"GeoNet: {n_params:,} parameters, {len(classes)} classes, {len(groups)} groups; "
         f"train {len(tr)} / val {len(va)} / test {len(te)}")
@@ -189,6 +196,13 @@ def train(images: np.ndarray, meta: list[dict], summary: dict, cfg: dict, out_di
 
     best = {"balanced_accuracy": -1.0}
     history = []
+    start = None
+    if init_state is not None:
+        vm0 = metrics(predict_logits(model, images, va, mean, std, size), y_all[va], len(classes))
+        best = {**vm0, "epoch": 0}
+        start = {"from": init_from, **{f"val_{k}": round(v, 4) for k, v in vm0.items() if k != "n"}}
+        torch.save({"state": model.state_dict(), "config": mc.__dict__}, out_dir / "model.pt")
+        log(json.dumps({"epoch": 0, **start}))
     t0 = time.time()
     step = 0
     stopped_early = False
@@ -239,7 +253,7 @@ def train(images: np.ndarray, meta: list[dict], summary: dict, cfg: dict, out_di
         "val": {"raw": metrics(vl, y_all[va], len(classes)), "calibrated": metrics(vl, y_all[va], len(classes), temp)},
         "test": {"raw": metrics(tl, y_all[te], len(classes)), "calibrated": metrics(tl, y_all[te], len(classes), temp),
                  "per_class": per_class_recall(tl, y_all[te], classes), "top_confusions": confusions(tl, y_all[te], classes)},
-        "chance_top1": round(1.0 / len(classes), 4), "history": history, "data": {k: summary[k] for k in ("images", "per_split", "sources", "licences")},
+        "chance_top1": round(1.0 / len(classes), 4), "continued": start, "history": history, "data": {k: summary[k] for k in ("images", "per_split", "sources", "licences")},
     }
     (out_dir / "model_meta.json").write_text(json.dumps(
         {k: report[k] for k in ("model", "classes", "groups", "image_size", "mean", "std", "temperature")}

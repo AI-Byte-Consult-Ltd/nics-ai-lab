@@ -3,6 +3,7 @@
   python scripts/train_geo.py                       # full config
   python scripts/train_geo.py --max-minutes 60      # stop after an hour, keep the best epoch
   python scripts/train_geo.py --gentle              # low priority, half of the threads (daytime)
+  python scripts/train_geo.py --continue            # go on from the latest run's weights, 30 more epochs
   python scripts/train_geo.py --resend              # no training: report of the latest finished run
 
 Writes experiments/vision/nics-vision-geo-micro/<run id>/ (model.pt, model_meta.json,
@@ -56,6 +57,9 @@ def main() -> int:
     ap.add_argument("--threads", type=int, default=0)
     ap.add_argument("--gentle", action="store_true")
     ap.add_argument("--no-push", action="store_true")
+    ap.add_argument("--continue", dest="cont", action="store_true",
+                    help="continue from the weights of the latest run (same classes) instead of random weights")
+    ap.add_argument("--lr", type=float, default=None)
     ap.add_argument("--resend", action="store_true", help="no training: print and send the report of the latest run")
     args = ap.parse_args()
     for stream in (sys.stdout, sys.stderr):      # Windows console/log is cp1252 by default: Russian text must not crash
@@ -74,15 +78,39 @@ def main() -> int:
     tc = dict(cfg["train"]) | {"seed": cfg["seed"]}
     if args.epochs:
         tc["epochs"] = args.epochs
+    init_state = init_from = None
+    if args.cont:
+        prev = sorted((ROOT / "experiments" / "vision" / cfg["model_id"]).glob("exp-*/model_meta.json"))
+        if not prev:
+            print("no earlier run to continue from: run without --continue first")
+            return 1
+        pm = json.loads(prev[-1].read_text(encoding="utf-8"))
+        if pm["classes"] != summary["classes"]:
+            print("the built photo set has other classes than the latest run: cannot continue, train from scratch")
+            return 1
+        init_state = torch.load(prev[-1].parent / "model.pt", map_location="cpu", weights_only=False)["state"]
+        init_from = prev[-1].parent.name
+        tc["lr"] = args.lr or float(tc.get("lr", 2e-3)) * 0.4   # gentler steps: the weights are already trained
+        tc["epochs"] = args.epochs or 30
+        print(f"continuing from {init_from}, lr {tc['lr']}, {tc['epochs']} epochs")
+    elif args.lr:
+        tc["lr"] = args.lr
     run = ROOT / "experiments" / "vision" / cfg["model_id"] / datetime.now(timezone.utc).strftime("exp-%Y%m%dT%H%M%SZ")
     run.mkdir(parents=True, exist_ok=True)
     print(f"run {run.name}, {threads} threads")
-    report = train.train(images, meta, summary, tc, run, max_minutes=args.max_minutes)
+    report = train.train(images, meta, summary, tc, run, max_minutes=args.max_minutes,
+                         init_state=init_state, init_from=init_from)
     return finish(report, run.name, args.no_push)
 
 
 def finish(report: dict, run_name: str, no_push: bool) -> int:
     text = snapshot_text(report)
+    c = report.get("continued")
+    if c:
+        v = report["val"]["raw"]
+        kept = " Новые эпохи не улучшили проверку: оставлены прежние веса." if report.get("best_epoch") == 0 else ""
+        text += (f" Продолжение от {c['from']}: на проверке сбалансированно {c['val_balanced_accuracy'] * 100:.1f} % -> "
+                 f"{v['balanced_accuracy'] * 100:.1f} %, с первой попытки {c['val_top1'] * 100:.1f} % -> {v['top1'] * 100:.1f} %.{kept}")
     print(text)
     print(json.dumps(report["test"]["top_confusions"][:5], ensure_ascii=False))
     if not no_push:
