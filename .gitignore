@@ -26,3 +26,6 @@ experiments/text/nics-text-micro/
 
 # NICS Vision Geo: runs and weights stay on the laptop
 experiments/vision/nics-vision-geo-*/
+
+# Research outputs (replay edge search, dip-buying check) are rebuilt by the scripts
+experiments/research/
