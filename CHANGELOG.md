@@ -14,6 +14,26 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.21.0] - 2026-11-26
+
+### Added
+- Research only, nothing is sent to users, the scanner or any EA.
+- `src/nics/market/replay_edge.py`, `scripts/replay_edge_research.py`, `tests/test_replay_edge.py`:
+  search for conditions with an edge in the multi-year replay of the live scanner (47 thousand
+  simulated trades 2022-2026, 12 instruments). Gradient boosting in numpy plus ridge, walk-forward
+  by calendar year, shuffled-target control. Result on real data: no condition found for any of
+  the four entry/stop constructions; the best fifth of trades by score is still about -0.02 to
+  -0.045 R on unseen years.
+- `src/nics/market/dip_long.py`, `scripts/dip_long_research.py`, `tests/test_dip_long.py`: daily
+  long-only rule "buy a short dip inside a long uptrend, sell on the first close above the 5-day
+  mean", with costs and financing, per-period table and a daily mark-to-market portfolio with a
+  cap on open positions. Result on public daily history (1990-2026): six stock indices, three
+  lower closes in a row: +0.34 % per trade after costs, t 6.5, positive in all five periods;
+  as a portfolio about +4.5 % a year at a 26 % drawdown (Sharpe near 0.55), losing years 7 of 36.
+  Today's large stocks look stronger but the list is survivor-biased. Metals, oil and forex: no
+  effect. The mirrored short rule does not work.
+- `experiments/research/` is ignored: outputs are rebuilt by the scripts.
+
 ## [0.20.1] - 2026-11-25
 
 ### Added
