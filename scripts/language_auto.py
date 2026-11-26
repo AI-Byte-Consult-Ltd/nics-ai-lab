@@ -98,13 +98,21 @@ def usable_sources() -> list[str]:
     """Ids of the first-wave sources the licence gate lets through, as registered now."""
     from prepare_language_corpus import SOURCES, refusal
     sources = json.loads(SOURCES.read_text(encoding="utf-8"))
-    return sorted(s["source_id"] for s in sources if s["lang"] in FIRST_WAVE and not refusal(s))
+    return sorted(s["source_id"] for s in sources if s["lang"] in FIRST_WAVE and not refusal(s)) + task_stamp()
+
+
+def task_stamp() -> list[str]:
+    """One entry per hand-written task file, with its checksum: a changed file rebuilds the tokens."""
+    import hashlib
+    folder = ROOT / "data_registry" / "language_tasks"
+    return [f"task:{p.stem}:{hashlib.sha256(p.read_bytes()).hexdigest()[:12]}"
+            for p in sorted(folder.glob("*.jsonl"))] if folder.is_dir() else []
 
 
 def present_sources() -> list[str]:
     """Ids of the sources whose text is on disk."""
     return sorted({d.name for lang in FIRST_WAVE if (TEXT / lang).is_dir()
-                   for d in (TEXT / lang).iterdir() if d.is_dir() and any(d.glob("*.txt"))})
+                   for d in (TEXT / lang).iterdir() if d.is_dir() and any(d.glob("*.txt"))}) + task_stamp()
 
 
 def prepare(cfg, push_report: bool) -> None:

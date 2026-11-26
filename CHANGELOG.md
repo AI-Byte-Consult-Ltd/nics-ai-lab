@@ -14,6 +14,18 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.23.0] - 2026-11-27
+
+### Added
+- NICS Language task "aquaterra-chat": 142 hand-written examples in the game's chat format
+  (`data_registry/language_tasks/aquaterra-chat.jsonl`, English, 16 topics, our own phrases
+  with `{placeholders}` that the game fills in; no personal data, no dialogue of a real
+  resident). `make_language_examples.py` holds about a tenth of the distinct records out
+  for validation and repeats the rest 200 times (about 3 million tokens, close to 2 % of
+  the training tokens), so the task is not lost among the corpus.
+- `language_auto.py` rebuilds the tokens once when a task file is added or changed; the
+  tokenizer and the checkpoint stay, training continues.
+
 ## [0.22.0] - 2026-11-26
 
 ### Added
