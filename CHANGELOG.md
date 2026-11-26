@@ -14,6 +14,16 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.22.0] - 2026-11-26
+
+### Added
+- NICS Language releases for other products: `scripts/release_language.py` and
+  `scripts/windows/language_release.bat` make one folder under `releases/language/` with
+  the weights only (`model.safetensors`), the tokenizer, the config, a manifest (step,
+  validation loss, lab version, text sources), a README with the loading code and
+  checksums. Training is not touched. Decision of 2026-11-26: the lab is the single
+  source of truth for the weights; products receive releases and send dialogues back.
+
 ## [0.21.0] - 2026-11-26
 
 ### Added
