@@ -125,6 +125,28 @@ def test_github_md_reads_one_folder_and_skips_excluded(tmp_path=None):
     assert ru[0][0] == "ru" and en[0][0] == "en"
 
 
+def test_ready_task_holds_out_validation_and_rejects_bad_records():
+    import tempfile
+    import make_language_examples as mk
+    folder = Path(tempfile.mkdtemp())
+    rec = "<|task:chat|><|lang:en|><|in|>topic<|sep|>question {n}<|sep|>{{name}}<|out|>Answer {n}, {{name}}.<|end|>"
+    src = folder / "demo-chat.jsonl"
+    src.write_text("\n".join(json.dumps({"text": rec.format(n=n)}) for n in range(200)), encoding="utf-8")
+    n_train, n_val = mk.ready_task(src, folder / "out", repeat=3)
+    train = [json.loads(x) for x in (folder / "out" / "demo-chat" / "train.jsonl").read_text(encoding="utf-8").splitlines()]
+    val = [json.loads(x) for x in (folder / "out" / "demo-chat" / "val.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert 0 < n_val < 60 and n_train == (200 - n_val) * 3 == len(train)
+    assert not set(train) & set(val)
+    src.write_text(json.dumps({"text": "<|task:chat|><|out|>x<|end|><|in|>again"}), encoding="utf-8")
+    try:
+        mk.ready_task(src, folder / "out", repeat=1)
+        raise AssertionError("a malformed record was accepted")
+    except ValueError:
+        pass
+    real = ROOT / "data_registry" / "language_tasks" / "aquaterra-chat.jsonl"
+    assert mk.ready_task(real, folder / "real", repeat=1)[1] > 0
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
