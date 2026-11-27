@@ -220,6 +220,16 @@ def main() -> None:
             "d1_trend_vote" in json.loads((champ_dir / "training-manifest.json").read_text()).get("bar_features", [])
         if tc.get("trial") and not tc.get("enabled") and not champ_has_trend and (need_scratch or not trial_file.exists()):
             plans.append(("trend", ["--trend-context", "on"]))
+        # add-to-winner setups (methods.add_on_winners, discipline research 27.11.2026) as a trial in
+        # the same way: a fresh model that also learns from add-on setups, with the champion's trend
+        # features, judged on the same validation set (add-ons never enter validation or test).
+        ao = cfg.get("add_ons") or {}
+        addon_file = base / "shadow" / "add_on_trial_last.json"
+        champ_sig = json.loads((champ_dir / "training-manifest.json").read_text()).get("signal_features", []) \
+            if champion and (champ_dir / "training-manifest.json").exists() else []
+        champ_has_addons = "kind_method_add_on_winner" in champ_sig
+        if ao.get("trial") and not ao.get("enabled") and not champ_has_addons and (need_scratch or not addon_file.exists()):
+            plans.append(("addons", ["--add-ons", "on", "--trend-context", "on" if champ_has_trend else "off"]))
         results = []
         for kind, extra in plans:
             exp = f"self-{stamp}-{kind}"
@@ -244,6 +254,16 @@ def main() -> None:
             trial_file.write_text(json.dumps(report["trend_trial"], indent=2), encoding="utf-8")
             log(f"trend-context trial: val {trial['val_score']:.4f} vs champion {champ_score} "
                 f"and other challengers {others}")
+        atrial = next((r for r in results if r["kind"] == "addons"), None)
+        if atrial:
+            others = [r["val_score"] for r in results if r["kind"] != "addons"]
+            report["add_on_trial"] = {"val_score": atrial["val_score"], "champion_val_score": champ_score,
+                                      "best_other_challenger": min(others) if others else None,
+                                      "signal_val_auc": atrial.get("signal_val_auc"),
+                                      "at": datetime.now(timezone.utc).isoformat()}
+            addon_file.parent.mkdir(parents=True, exist_ok=True)
+            addon_file.write_text(json.dumps(report["add_on_trial"], indent=2), encoding="utf-8")
+            log(f"add-on trial: val {atrial['val_score']:.4f} vs champion {champ_score} and other challengers {others}")
 
         # 4. promote
         # The validation score is a loss: it can improve a little while the model separates good

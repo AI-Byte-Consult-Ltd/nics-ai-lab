@@ -14,6 +14,24 @@ All notable changes to this repository are documented here. Format follows
 Every merged change bumps [`VERSION`](VERSION) and gets an entry here --
 no silent, unversioned changes.
 
+## [0.24.0] - 2026-11-27
+
+### Added
+- Risk discipline and trade management from two trading-psychology books, written as our own
+  testable rules (no book text, no names): `src/nics/market/discipline.py`,
+  `scripts/discipline_research.py`, report `docs/discipline_research_2026-11-27.md`.
+  Confirmed: trades are independent, fixed risk, trailing exits beat a fixed take on an entry
+  with an edge. Rejected: streak or 20-trade-window sizing, a 24-hour time stop, averaging down.
+  Adding to winners earns only by adding exposure.
+- Add-on setups `method_add_on_winner` (`methods.add_on_winners`): a method setup at +1 R before
+  its stop gives a second setup with the stop at the first entry. Nightly **trial**
+  (`add_ons.trial`): `self_learn.py` trains one extra fresh model with them (first night, then on
+  scratch nights); the setups only teach and never enter validation or test, so the trial is
+  judged on the champion's validation set. A loaded model keeps its own schema (manifest).
+  `train_trading.py --add-ons on|off`.
+- Registry statuses "trial" and "checked"; author names of the reviewed books added to the
+  hashed banned list.
+
 ## [0.23.0] - 2026-11-27
 
 ### Added

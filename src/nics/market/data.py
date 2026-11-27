@@ -71,11 +71,13 @@ def use_trend_context(on: bool, lock: bool = False) -> None:
 
 def trend_context_on() -> bool:
     return _TREND["on"]
+
+
 METHOD_KINDS = ["method_range_both_sides", "method_breakout20", "method_ema_pullback", "method_level_bounce"]
 SETUP_KINDS = (["scanner_scheduled", "scanner_targeted", "scanner_scalper", "shadow", "ea_manual", "own_trade"]
                + METHOD_KINDS)
 STRATEGIES = ["NICS-CASCADE-2026-08-v2", "NICS-INTRADAY-2026-08-v1", "NICS-SCALPER-BETA-v0.1"]
-SIGNAL_FEATURES = [
+_SIGNAL_CORE = [
     "direction",      # +1 long, -1 short
     "entry_dist_atr", # (entry - close at setup time) / ATR, signed by direction
     "sl_dist_atr",    # |entry - SL| / ATR
@@ -89,7 +91,36 @@ SIGNAL_FEATURES = [
     "scanner_opportunity",  # opportunity score / 100
     "scanner_technical",    # technical score / 10
     "has_scanner_scores",
-] + [f"kind_{k}" for k in SETUP_KINDS] + [f"strategy_{v}" for v in STRATEGIES] + ["strategy_other"]
+]
+
+# Add-on setups (discipline research 27.11.2026, src/nics/market/methods.py add_on_winners): when a
+# method setup is +1 R in profit, a second entry with its stop at the first entry. A trial, like the
+# trend context: off by default; a loaded model decides for itself from its manifest.
+ADDON_KIND = "method_add_on_winner"
+SETUP_KINDS_CORE = list(SETUP_KINDS)
+_ADDONS = {"on": False, "locked": False}
+
+
+def _signal_features() -> list[str]:
+    return (_SIGNAL_CORE + [f"kind_{k}" for k in SETUP_KINDS] + [f"strategy_{v}" for v in STRATEGIES]
+            + ["strategy_other"])
+
+
+SIGNAL_FEATURES = _signal_features()
+
+
+def use_add_ons(on: bool, lock: bool = False) -> None:
+    """Switch the add-on setup kind in or out of SETUP_KINDS / SIGNAL_FEATURES (in place)."""
+    if _ADDONS["locked"] and not lock:
+        return
+    _ADDONS.update(on=bool(on), locked=_ADDONS["locked"] or lock)
+    SETUP_KINDS[:] = SETUP_KINDS_CORE + ([ADDON_KIND] if on else [])
+    SIGNAL_FEATURES[:] = _signal_features()
+
+
+def add_ons_on() -> bool:
+    return _ADDONS["on"]
+
 
 # Broker / prop symbol spellings -> our symbol names (for MT5 terminal trades).
 SYMBOL_ALIASES = {

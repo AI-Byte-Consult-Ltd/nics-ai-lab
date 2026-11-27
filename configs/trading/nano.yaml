@@ -38,6 +38,11 @@ trend_context:           # daily trend states as inputs on every bar (src/nics/m
   trial: true            # self_learn trains one extra fresh model WITH them (first night, then on scratch nights);
                          # it becomes champion only if its validation score is better (then it keeps them)
 
+add_ons:                 # add-to-winner setups (methods.add_on_winners; discipline research 27.11.2026)
+  enabled: false         # +1 R reached before the stop -> second entry, stop at the first entry, target 1 R.
+  trial: true            # self_learn trains one extra model WITH them (first night, then on scratch nights);
+                         # they only teach (never in validation/test), so the comparison with the champion is fair
+
 self_learning:           # scripts/self_learn.py (nightly cycle on the laptop)
   finetune_steps: 1500   # warm-start from the champion with this many steps
   lr_scale: 0.5          # half the learning rate when fine-tuning

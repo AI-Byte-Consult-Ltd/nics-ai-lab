@@ -94,7 +94,24 @@ them; the shadow stream needs about 3 months for a verdict.
 | 12 | queued_volume_price | volume and price | move confirmed by volume, climax volume | — | queued | — | — |
 | 13 | queued_r_multiple_sizing | risk in R | position size from the stop, system judged in R | — | queued | — | — |
 
-Psychology and discipline books give no codable entry rules and are not used for rules.
+Psychology and discipline books give no codable entry rules. Their mechanical parts (risk per
+trade, streaks, cutting losers, letting winners run, adding to winners) were tested on 27.11.2026,
+see below.
+
+## Risk discipline and trade management (27.11.2026)
+
+Research `docs/discipline_research_2026-11-27.md` (scanner replay 4.5 years, hourly bars 2019–2026,
+EA 1.29 trade set). Code `src/nics/market/discipline.py`.
+
+| id | idea | result | status |
+|---|---|---|---|
+| method_add_on_winner | +1 R before the stop -> second entry at that close, stop at the first entry, target 1 R | adds earn only by adding exposure (0.11 R per unit vs 0.12 R single unit with trail), ≈0 on random entries; the model learns when continuation works | **trial**: extra nightly model, setups only teach, never in validation |
+| disc_independence | outcomes of consecutive trades are independent | after 1–5 losses −0.050…−0.039 R vs −0.054 R base; runs z −0.93…+1.93 | checked |
+| disc_sizing_fixed | fixed risk per trade | other sizing rules give the same R per unit of risk; doubling after a loss: drawdown 620 R vs 251 R | checked |
+| disc_let_run | trailing stop instead of a fixed take | trend entries +0.121 R vs +0.054 R (t 4.0), longs only, fat-tailed | checked |
+| rejected_disc_edge_window | size by the sum of the last 20 trades | no prediction (corr −0.007) | rejected |
+| rejected_disc_time_stop | exit after 24 h unless +0.25 R | worse in every set | rejected |
+| rejected_disc_average_down | add at −0.5 R | same per-unit R as adding to winners, bigger drawdown; never | rejected |
 
 The machine-readable copy of this list is `src/nics/market/registry.py`. It is pushed
 to the CEO desk every night, and a test keeps it in sync with the code.

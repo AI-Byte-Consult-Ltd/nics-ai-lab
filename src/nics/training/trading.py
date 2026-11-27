@@ -76,6 +76,7 @@ def build_samples(cfg, snapshot: Path, use_public: bool, label_setups: bool = Tr
     if not series:
         sys.exit(f"No candles in {snapshot} for intervals {list(ivcfg)}.")
     market.use_trend_context(bool((cfg.get("trend_context") or {}).get("enabled", False)))  # no-op if a model locked it
+    market.use_add_ons(bool((cfg.get("add_ons") or {}).get("enabled", False)))  # same rule
     if market.trend_context_on():
         # daily candles for the context even when this run trains on other timeframes only
         extra = [] if "1day" in ivcfg else market.load_series(snapshot, use_public=use_public, intervals=["1day"])
@@ -114,7 +115,8 @@ def build_samples(cfg, snapshot: Path, use_public: bool, label_setups: bool = Tr
     mcfg = cfg.get("methods") or {}
     if mcfg.get("enabled", True):
         gen = methodologies.generate(series, set(mcfg.get("intervals", ["1h", "4h"])), market.WARMUP,
-                                     int(mcfg.get("cooldown_bars", 6)), public=bool(mcfg.get("on_public", True)))
+                                     int(mcfg.get("cooldown_bars", 6)), public=bool(mcfg.get("on_public", True)),
+                                     add_ons=market.add_ons_on())
         # broker-timeframe setups are labelled on broker candles; public-history setups on their own series
         setups += [st for st in gen if st["symbol"] in broker or series[st["series"]].public]
     if mirror_scanner:
@@ -172,6 +174,9 @@ def make_splits(H, S, fractions):
     if len(S["y"]) and "public" in S:  # public-history setups only teach; val/test = our own setups
         pub = S["public"].astype(bool)
         s = (s[0], s[1] & ~pub, s[2] & ~pub)
+    if len(S["y"]) and "kind" in S:  # add-on setups only teach, so validation is the same set with or without them
+        add = S["kind"] == market.ADDON_KIND
+        s = (s[0], s[1] & ~add, s[2] & ~add)
     return h, s, (q1, q2), own
 
 
@@ -284,6 +289,7 @@ def lock_schema_from(manifest: dict) -> None:
     """A model always runs with the features it was trained with (trend context on or off)."""
     feats = manifest.get("bar_features") or []
     market.use_trend_context(all(f in feats for f in trend_context.TREND_FEATURES), lock=True)
+    market.use_add_ons(f"kind_{market.ADDON_KIND}" in (manifest.get("signal_features") or []), lock=True)
 
 
 def schema_matches(manifest: dict) -> bool:
