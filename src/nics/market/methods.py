@@ -129,24 +129,63 @@ METHODS = {
 }
 
 
-def generate(series_list, intervals, warmup: int, cooldown_bars: int = 6, public: bool = False) -> list[dict]:
+ADDON_KIND = "method_add_on_winner"
+
+
+def add_on_winners(s, setups: list[dict], max_bars: int = 48, trigger_r: float = 1.0) -> list[dict]:
+    """Add to a winner (discipline research 27.11.2026, docs/discipline_research_2026-11-27.md).
+    For every method setup that reaches +trigger_r R (bar high for a long, low for a short)
+    before its stop and within max_bars, a second setup is decided at the close of that bar:
+    entry = that close, stop = the first entry (break-even of the first unit), target = 1 R of
+    its own risk. Only bars up to the add-on bar are used, so it is causal. The model learns
+    from these when a trade that already works tends to keep working."""
+    out = []
+    for st in setups:
+        i, d, e, sl = st["bar"], st["direction"], st["entry"], st["sl"]
+        risk = abs(e - sl)
+        if not risk > 0:
+            continue
+        lvl = e + d * trigger_r * risk
+        for k in range(i + 1, min(len(s.c), i + 1 + max_bars)):
+            if (s.l[k] <= sl) if d > 0 else (s.h[k] >= sl):
+                break  # stopped first: no add-on
+            if (s.h[k] >= lvl) if d > 0 else (s.l[k] <= lvl):
+                a = s.atr[k]
+                new_risk = d * (s.c[k] - e)
+                if a > 0 and new_risk > 0.3 * a:
+                    out.append({"id": f"{ADDON_KIND}-{st['id']}", "kind": ADDON_KIND, "symbol": s.symbol,
+                                "direction": d, "t": float(s.t[k] + s.bar_seconds), "entry": float(s.c[k]),
+                                "sl": float(e), "tp1": float(s.c[k] + d * new_risk), "bar": k})
+                break
+    return out
+
+
+def generate(series_list, intervals, warmup: int, cooldown_bars: int = 6, public: bool = False,
+             add_ons: bool = False) -> list[dict]:
     """Run every methodology on every series of the given timeframes: broker series, and
     with public=True also long public history. Each setup carries "series" (index in
-    series_list) so a public setup can be labelled on its own candles."""
+    series_list) so a public setup can be labelled on its own candles. add_ons=True also
+    adds the add-on setups of add_on_winners (trial, off by default)."""
     out = []
     for n, s in enumerate(series_list):
         if (s.public and not public) or s.interval not in intervals or s.atr is None:
             continue
         x = _ctx(s)
+        kept = []
         for fn in METHODS.values():
             last = {1: -10**9, -1: -10**9}
             for st in fn(s, x, warmup):
-                i = st.pop("bar")
+                i = st["bar"]
                 if i - last[st["direction"]] < cooldown_bars:
                     continue
                 last[st["direction"]] = i
-                st["series"] = n
-                if s.public:
-                    st["id"] = "pub-" + st["id"]
-                out.append(st)
+                kept.append(st)
+        if add_ons:
+            kept += add_on_winners(s, kept)
+        for st in kept:
+            st.pop("bar")
+            st["series"] = n
+            if s.public:
+                st["id"] = "pub-" + st["id"]
+            out.append(st)
     return out

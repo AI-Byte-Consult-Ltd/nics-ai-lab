@@ -24,7 +24,7 @@ from nics.market import methods, registry, rules  # noqa: E402
 from test_trading_pipeline import make_snapshot  # noqa: E402
 
 
-BANNED = {'3f0dd39a35a47bab', '836c0a14b3a77351', '4f4418c4b53f4e3a', 'd6861e054ba9f4be', '0c915ba83dbac8a9', 'ca700c8aa0b8566b', 'e57571d905508b57', '27a0f645e20497a6', '4bad2eaec5cd6571', 'a97b73a0db48a29e', '864691f8a013e0b2', '6d50a53fe9365bde', 'f2bec3a0f8b2235a', '664a654a76f954df', '6f166e778d3e08c0', '175a680792c1fbf7', '4d48b51a3deb7a4e'}
+BANNED = {'3f0dd39a35a47bab', '836c0a14b3a77351', '4f4418c4b53f4e3a', 'd6861e054ba9f4be', '0c915ba83dbac8a9', 'ca700c8aa0b8566b', 'e57571d905508b57', '27a0f645e20497a6', '4bad2eaec5cd6571', 'a97b73a0db48a29e', '864691f8a013e0b2', '6d50a53fe9365bde', 'f2bec3a0f8b2235a', '664a654a76f954df', '6f166e778d3e08c0', '175a680792c1fbf7', '4d48b51a3deb7a4e', 'a0ec927b1044a5e9', 'f4284f67d32eb6e8', '97de9e3dc1d90468', '138f879786ae93f8', '7fbd89e327646e8a', '82a0b51254a30455', '3dc8f9868bb555e3'}
 
 
 class S:  # minimal series

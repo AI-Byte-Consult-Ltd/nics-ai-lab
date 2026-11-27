@@ -8,6 +8,8 @@ status: "training" = the model learns from it (methods.py);
         "feature"  = the model sees its state on every bar as an input (trend_context.py);
         "shadow"   = measured nightly on its own, the model does not learn from it yet (rules.py);
         "queued"   = planned, not coded yet;
+        "trial"    = an extra nightly model learns from it; it stays only if that model wins on validation;
+        "checked"  = a discipline claim tested on our data, kept as a principle, nothing to learn;
         "rejected" = tested and dropped (reason in docs/rules_registry.md).
 """
 from __future__ import annotations
@@ -50,6 +52,22 @@ REGISTRY = [
      "status": "rejected", "added": "2026-11-22", "version": "0.14.0"},
     {"id": "rejected_volatility_squeeze", "name": "Сжатие полос волатильности и выход из него",
      "status": "rejected", "added": "2026-11-22", "version": "0.14.0"},
+    # risk discipline and trade management from two psychology books, research 27.11.2026
+    # (docs/discipline_research_2026-11-27.md, src/nics/market/discipline.py)
+    {"id": "method_add_on_winner", "name": "Доливка к прибыльной сделке: +1R до стопа, второй вход, стоп на первом входе",
+     "status": "trial", "added": "2026-11-27", "version": "0.24.0"},
+    {"id": "disc_independence", "name": "Сделки независимы: серия убытков не предсказывает следующую",
+     "status": "checked", "added": "2026-11-27", "version": "0.24.0"},
+    {"id": "disc_sizing_fixed", "name": "Фиксированный риск на сделку; удвоение после убытка отклонено",
+     "status": "checked", "added": "2026-11-27", "version": "0.24.0"},
+    {"id": "disc_let_run", "name": "Не резать прибыль: стоп подтягивается за ценой вместо близкого тейка",
+     "status": "checked", "added": "2026-11-27", "version": "0.24.0"},
+    {"id": "rejected_disc_edge_window", "name": "Размер по сумме последних 20 сделок",
+     "status": "rejected", "added": "2026-11-27", "version": "0.24.0"},
+    {"id": "rejected_disc_time_stop", "name": "Выход через 24 ч, если сделка не в плюсе на 0,25R",
+     "status": "rejected", "added": "2026-11-27", "version": "0.24.0"},
+    {"id": "rejected_disc_average_down", "name": "Усреднение убыточной позиции",
+     "status": "rejected", "added": "2026-11-27", "version": "0.24.0"},
     # queue, one at a time through shadow
     {"id": "queued_multi_timeframe_screen", "name": "Три экрана: тренд на 4h, откат осциллятора на 1h, стоп-вход",
      "status": "queued", "added": "2026-11-21", "version": "-"},
@@ -76,7 +94,7 @@ REGISTRY = [
 ]
 
 STATUS_RU = {"training": "в обучении", "feature": "признак в обучении", "shadow": "в тени", "queued": "в очереди",
-             "rejected": "отклонено"}
+             "trial": "пробная модель ночью", "checked": "проверено, принцип", "rejected": "отклонено"}
 
 
 def summary() -> dict:
